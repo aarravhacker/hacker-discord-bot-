@@ -1,0 +1,91 @@
+# ═══════════════════════════════════════════════════════════
+# Lavalink v4 Docker Compose Configuration
+# Production-grade isolated deployment
+# ═══════════════════════════════════════════════════════════
+
+version: '3.8'
+
+services:
+  lavalink:
+    image: fredster/lavalink:4.0.8
+    container_name: lavalink
+    restart: unless-stopped
+    ports:
+      - "2333:2333"
+    environment:
+      # JVM Settings
+      JAVA_OPTS: >-
+        -Xms512m
+        -Xmx1g
+        -XX:+UseG1GC
+        -XX:G1HeapRegionSize=4m
+        -XX:MaxGCPauseMillis=200
+        -XX:InitiatingHeapOccupancyPercent=45
+        -XX:+ParallelRefProcEnabled
+        -XX:+ExplicitGCInvokesConcurrent
+        --add-opens java.base/java.lang=ALL-UNNAMED
+      
+      # Lavalink Settings
+      SERVER_PORT: 2333
+      SERVER_ADDRESS: 0.0.0.0
+      LAVALINK_SERVER_PASSWORD: youshallnotpass
+      
+      # Spotify Integration
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+    
+    volumes:
+      - ./application.yml:/opt/lavalink/application.yml
+      - ./plugins:/opt/lavalink/plugins
+      - ./logs:/opt/lavalink/logs
+      - ./data:/opt/lavalink/data
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2333/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    network_mode: host
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # Optional: Monitoring with Prometheus
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+  #   depends_on:
+  #     - lavalink
+
+  # Optional: Grafana Dashboard
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: grafana
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     GF_SECURITY_ADMIN_PASSWORD: admin
+  #   depends_on:
+  #     - prometheus
+
+networks:
+  default:
+    name: lavalink-network

@@ -1,0 +1,82 @@
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { successEmbed, errorEmbed } = require('../../utils/helpers');
+const { addModLog, getCaseNumber } = require('../../db/modRepository');
+const { getGuild } = require('../../db/guildRepository');
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('masskick')
+    .setDescription('Kick multiple users at once')
+    .addStringOption(option => option.setName('users').setDescription('User mentions or IDs separated by spaces').setRequired(true))
+    .addStringOption(option => option.setName('reason').setDescription('Reason for the mass kick'))
+    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+  cooldown: 30,
+  aliases: ['mk'],
+  prefix: true,
+  adminOnly: true,
+  async execute(interaction, args) {
+    const isSlash = typeof interaction.isChatInputCommand === 'function' && interaction.isChatInputCommand();
+    const member = isSlash ? interaction.member : interaction.guild.members.cache.get(interaction.author?.id);
+    const usersStr = isSlash ? interaction.options?.getString('users') : args?.[0];
+    const reason = isSlash ? interaction.options?.getString('reason') : (args?.slice(1).join(' ') || 'No reason provided');
+
+    if (!usersStr) return interaction.reply({ embeds: [errorEmbed('Please provide user mentions or IDs separated by spaces.')] });
+
+    const userIds = usersStr.split(/\s+/).map(id => id.replace(/[<>@!]/g, ''));
+    if (userIds.length > 50) return interaction.reply({ embeds: [errorEmbed('You can only mass kick up to 50 users at a time.')] });
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const userId of userIds) {
+      try {
+        const target = interaction.guild.members.cache.get(userId);
+        if (!target) {
+          results.push(`❌ ${userId}: Not found`);
+          failCount++;
+          continue;
+        }
+
+        if (!target.kickable) {
+          results.push(`❌ ${userId}: Cannot kick (higher role or bot)`);
+          failCount++;
+          continue;
+        }
+
+        const caseNumber = await getCaseNumber(interaction.guild.id);
+        await addModLog({
+          guild_id: interaction.guild.id,
+          user_id: userId,
+          moderator_id: member.id,
+          action: 'masskick',
+          reason,
+          case_number: caseNumber
+        });
+
+        await target.send({ embeds: [errorEmbed(`You have been kicked from **${interaction.guild.name}** for: ${reason}`)] }).catch(() => {});
+        await target.kick(reason);
+        results.push(`✅ ${userId}: Kicked`);
+        successCount++;
+      } catch (err) {
+        results.push(`❌ ${userId}: ${err.message}`);
+        failCount++;
+      }
+    }
+
+    const guildConfig = await getGuild(interaction.guild.id);
+    if (guildConfig?.mod_log_channel) {
+      const logChannel = interaction.guild.channels.cache.get(guildConfig.mod_log_channel);
+      if (logChannel) {
+        logChannel.send({
+          embeds: [successEmbed(`**Mass Kick** by ${member.user.tag}\n**Kicked:** ${successCount}\n**Failed:** ${failCount}\n**Reason:** ${reason}`)]
+        });
+      }
+    }
+
+    const resultStr = results.join('\n');
+    return interaction.reply({
+      embeds: [successEmbed(`Mass kick complete!\n**Success:** ${successCount}\n**Failed:** ${failCount}\n\n${resultStr}`)]
+    });
+  }
+};

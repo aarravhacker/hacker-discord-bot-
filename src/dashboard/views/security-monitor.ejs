@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Monitor - Hacker Bot</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .sec-header { background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); padding: 20px 32px; border-bottom: 1px solid var(--border-primary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .sec-header h1 { font-size: 1.3rem; font-weight: 800; color: var(--cyan); display: flex; align-items: center; gap: 10px; }
+    .threat-badge { padding: 6px 16px; border-radius: 999px; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.02em; }
+    .threat-0 { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
+    .threat-1 { background: #eab30822; color: #eab308; border: 1px solid #eab308; }
+    .threat-2 { background: var(--orange-dim); color: var(--orange); border: 1px solid var(--orange); }
+    .threat-3 { background: #ef444422; color: var(--red); border: 1px solid var(--red); }
+    .threat-4 { background: #dc262622; color: #dc2626; border: 1px solid #dc2626; }
+    .sec-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
+    .back-link { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; transition: color var(--transition); }
+    .back-link:hover { color: var(--accent); }
+    @media (max-width: 900px) { .sec-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="sec-header">
+    <div>
+      <a href="/dashboard/guild/<%= guildId %>" class="back-link mb-sm">&larr; Back to Server</a>
+      <h1>🛡️ Security Monitor</h1>
+    </div>
+    <div class="threat-badge threat-<%= stage %>" id="threatLevel">
+      Stage <%= stage %>: <%= stageName %>
+    </div>
+  </div>
+
+  <div class="sec-grid">
+    <div class="card">
+      <div class="section-title">Overview</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="stat-mini"><h4 id="totalEvents">0</h4><p>Events (24h)</p></div>
+        <div class="stat-mini"><h4 id="totalIncidents">0</h4><p>Incidents</p></div>
+        <div class="stat-mini"><h4 id="blockedActions">0</h4><p>Blocked</p></div>
+        <div class="stat-mini"><h4 id="activeUsers">0</h4><p>Active Users</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Active Protections</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
+        <div class="protection-item"><div class="protection-dot <%= antinuke ? 'dot-active' : 'dot-inactive' %>"></div><span class="protection-name">Anti-Nuke</span></div>
+        <div class="protection-item"><div class="protection-dot <%= antiraid ? 'dot-active' : 'dot-inactive' %>"></div><span class="protection-name">Anti-Raid</span></div>
+        <div class="protection-item"><div class="protection-dot <%= antilink ? 'dot-active' : 'dot-inactive' %>"></div><span class="protection-name">Anti-Link</span></div>
+        <div class="protection-item"><div class="protection-dot <%= antispam ? 'dot-active' : 'dot-inactive' %>"></div><span class="protection-name">Anti-Spam</span></div>
+        <div class="protection-item"><div class="protection-dot <%= antibot ? 'dot-active' : 'dot-inactive' %>"></div><span class="protection-name">Anti-Bot</span></div>
+        <div class="protection-item"><div class="protection-dot <%= lockdown ? 'dot-active' : 'dot-inactive' %>"></div><span class="protection-name">Lockdown</span></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-danger btn-sm" onclick="triggerFreeze()">Freeze All</button>
+        <button class="btn btn-warning btn-sm" onclick="triggerLockdown()">Lockdown</button>
+        <button class="btn btn-success btn-sm" onclick="triggerUnfreeze()">Unfreeze</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Activity (Last 60s)</div>
+      <div class="activity-bar" id="activityGraph"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.7rem;color:var(--text-dim);">
+        <span>60s ago</span><span>Now</span>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: 1 / -1;">
+      <div class="section-title">Live Event Feed</div>
+      <div class="event-feed" id="eventFeed">
+        <div class="event-item info"><span class="event-time">Connecting...</span> Waiting for events...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Recent Incidents</div>
+      <div class="incident-list" id="incidentList">
+        <div class="empty-state"><div class="icon">🛡️</div><div class="title">No incidents recorded</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">User Risk Scores</div>
+      <table class="risk-table">
+        <thead><tr><th>User</th><th>Score</th><th>Level</th></tr></thead>
+        <tbody id="riskTable">
+          <tr><td colspan="3" style="color:var(--text-dim)">No data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/js/dashboard.js"></script>
+  <script>
+    const guildId = '<%= guildId %>';
+    let eventSource;
+    let activityBars = [];
+    const MAX_BARS = 30;
+
+    function initGraph() {
+      const graph = document.getElementById('activityGraph');
+      for (let i = 0; i < MAX_BARS; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        bar.style.height = '4px';
+        graph.appendChild(bar);
+        activityBars.push(bar);
+      }
+    }
+
+    function updateGraph(count) {
+      activityBars.shift();
+      const bar = document.createElement('div');
+      bar.className = 'bar active';
+      bar.style.height = Math.min(count * 10, 100) + 'px';
+      const graph = document.getElementById('activityGraph');
+      graph.appendChild(bar);
+      activityBars.push(bar);
+    }
+
+    function addEvent(text, type = 'info') {
+      const feed = document.getElementById('eventFeed');
+      const item = document.createElement('div');
+      item.className = `event-item ${type}`;
+      const time = new Date().toLocaleTimeString();
+      item.innerHTML = `<span class="event-time">${time}</span> ${text}`;
+      feed.insertBefore(item, feed.firstChild);
+      if (feed.children.length > 50) feed.removeChild(feed.lastChild);
+    }
+
+    async function fetchData() {
+      const data = await apiFetch(`/api/security/${guildId}/monitor`);
+      if (!data || data.error) return;
+
+      document.getElementById('totalEvents').textContent = data.totalEvents || 0;
+      document.getElementById('totalIncidents').textContent = data.incidents || 0;
+      document.getElementById('blockedActions').textContent = data.blocked || 0;
+      document.getElementById('activeUsers').textContent = data.activeUsers || 0;
+
+      const tl = document.getElementById('threatLevel');
+      tl.className = `threat-badge threat-${data.stage || 0}`;
+      tl.textContent = `Stage ${data.stage || 0}: ${data.stageName || 'Normal'}`;
+
+      if (data.risks && data.risks.length > 0) {
+        document.getElementById('riskTable').innerHTML = data.risks.map(r => {
+          const cls = r.score > 70 ? 'risk-high' : r.score > 40 ? 'risk-medium' : 'risk-low';
+          return `<tr><td>${r.tag || r.id}</td><td class="${cls}">${r.score}</td><td class="${cls}">${r.level}</td></tr>`;
+        }).join('');
+      }
+
+      if (data.incidentsList && data.incidentsList.length > 0) {
+        document.getElementById('incidentList').innerHTML = data.incidentsList.map(i =>
+          `<div class="incident-item"><span class="incident-type">${i.type}</span> — ${i.details || 'No details'} <br><span class="event-time">${new Date(i.timestamp).toLocaleString()}</span></div>`
+        ).join('');
+      }
+    }
+
+    function connectSSE() {
+      eventSource = new EventSource(`/api/security/${guildId}/events`);
+      eventSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          addEvent(data.text || JSON.stringify(data), data.type || 'info');
+          updateGraph(1);
+        } catch (err) {}
+      };
+      eventSource.onerror = () => { addEvent('Connection lost. Reconnecting...', 'warning'); setTimeout(connectSSE, 5000); };
+    }
+
+    async function triggerFreeze() {
+      if (!confirm('Freeze all channels? This will block destructive actions.')) return;
+      await apiFetch(`/api/security/${guildId}/freeze`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({type:'global'}) });
+      addEvent('Freeze activated', 'danger');
+      showToast('Freeze activated', 'warning');
+    }
+
+    async function triggerLockdown() {
+      if (!confirm('Enable full lockdown? This will lock all channels.')) return;
+      await apiFetch(`/api/security/${guildId}/lockdown`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({enabled:true}) });
+      addEvent('Lockdown activated', 'danger');
+      showToast('Lockdown activated', 'error');
+    }
+
+    async function triggerUnfreeze() {
+      await apiFetch(`/api/security/${guildId}/freeze`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({type:'global', unfreeze:true}) });
+      addEvent('Unfreeze activated', 'success');
+      showToast('Unfreeze activated', 'success');
+    }
+
+    initGraph();
+    fetchData();
+    connectSSE();
+    setInterval(fetchData, 10000);
+  </script>
+</body>
+</html>

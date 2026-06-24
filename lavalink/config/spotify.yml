@@ -1,0 +1,13 @@
+# Spotify Integration Config
+# Credentials loaded from .env
+spotify:
+  enabled: true
+  clientId: "${SPOTIFY_CLIENT_ID}"
+  clientSecret: "${SPOTIFY_CLIENT_SECRET}"
+  countryCode: "US"
+  playlistLoadLimit: 6
+  albumLoadLimit: 6
+  resolveArtists: true
+  preloadArtists: true
+  mirrorTracksToYouTube: true
+  mirrorLRCToYouTube: true

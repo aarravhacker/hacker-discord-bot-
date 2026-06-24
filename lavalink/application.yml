@@ -1,0 +1,65 @@
+server:
+  port: 2333
+  address: 0.0.0.0
+  Tomcat:
+    max-http-form-post-size: 5MB
+    max-swallow-size: 2MB
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  codec:
+    max-in-memory-size: 10MB
+
+lavalink:
+  server:
+    password: "youshallnotpass"
+    sources:
+      soundcloud: true
+      youtube: true
+      bandcamp: true
+      twitch: true
+      mixer: true
+      vimeo: true
+      nico: true
+      http: true
+      local: false
+    bufferQueueSize: 1024
+    youtubePlaylistLoadLimit: 600
+    playerUpdateInterval: 5
+    isTrace: true
+    youtubeSearchEnabled: true
+    soundcloudSearchEnabled: true
+    gc:
+      gcInterval: 120
+      gcInitialMemory: 200
+      gcMaxMemory: 500
+    resamplingQuality: HIGH
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+    epoll: false
+    replaceWebSocketParameters: false
+
+logging:
+  level:
+    root: INFO
+    lavalink: DEBUG
+    io:
+      lavaplayer: DEBUG
+      netty: DEBUG
+
+metrics:
+  prometheus:
+    enabled: false
+    port: 9090
+  grafana:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized

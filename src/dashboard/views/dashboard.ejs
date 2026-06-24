@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Hacker Bot</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="/" class="nav-logo"><span class="logo-icon">H</span> Hacker Bot</a>
+    <div class="nav-right">
+      <a href="/dashboard" class="nav-link active">Dashboard</a>
+      <a href="/dashboard/economy" class="nav-link">Economy</a>
+      <a href="/dashboard/guilds" class="nav-link">My Servers</a>
+      <a href="/auth/logout" class="nav-link">Logout</a>
+      <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" class="nav-avatar" alt="avatar">
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Welcome back, <%= user.username %></p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="icon">🏠</div>
+        <div class="value" id="guildCount">-</div>
+        <div class="label">Servers</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">👥</div>
+        <div class="value" id="userCount">-</div>
+        <div class="label">Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">📺</div>
+        <div class="value" id="channelCount">-</div>
+        <div class="label">Channels</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">⏱️</div>
+        <div class="value" id="uptime">-</div>
+        <div class="label">Uptime</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">💾</div>
+        <div class="value" id="memory">-</div>
+        <div class="label">Memory (MB)</div>
+      </div>
+    </div>
+
+    <div class="section-title">Quick Actions</div>
+    <div class="quick-actions">
+      <a href="/dashboard/guilds" class="quick-action">
+        <div class="icon">🏠</div>
+        <div class="label">Manage Servers</div>
+      </a>
+      <a href="/dashboard/economy" class="quick-action">
+        <div class="icon">💰</div>
+        <div class="label">Economy Center</div>
+      </a>
+      <div class="quick-action" onclick="refreshStats()">
+        <div class="icon">🔄</div>
+        <div class="label">Refresh Stats</div>
+      </div>
+    </div>
+
+    <div class="section-title">Recent Moderation Logs</div>
+    <div class="card">
+      <div class="log-list" id="logs">
+        <div class="loading">Loading logs...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/dashboard.js"></script>
+  <script>
+    async function loadStats() {
+      const data = await apiFetch('/api/stats');
+      if (data && !data.error) {
+        document.getElementById('guildCount').textContent = data.guilds;
+        document.getElementById('userCount').textContent = formatNumber(data.users);
+        document.getElementById('channelCount').textContent = data.channels;
+        document.getElementById('uptime').textContent = formatUptime(data.uptime);
+        document.getElementById('memory').textContent = data.memory.toFixed(1);
+      }
+    }
+
+    function refreshStats() { loadStats(); showToast('Stats refreshed'); }
+
+    loadStats();
+    setInterval(loadStats, 30000);
+  </script>
+</body>
+</html>

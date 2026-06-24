@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Servers - Hacker Bot</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="/" class="nav-logo"><span class="logo-icon">H</span> Hacker Bot</a>
+    <div class="nav-right">
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/dashboard/guilds" class="nav-link active">My Servers</a>
+      <a href="/auth/logout" class="nav-link">Logout</a>
+      <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" class="nav-avatar" alt="avatar">
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 class="page-title">My Servers</h1>
+    <p class="page-subtitle">Select a server to manage</p>
+
+    <div class="mb-md">
+      <input type="text" class="search-box" id="search" placeholder="Search servers..." oninput="filterGuilds()">
+    </div>
+
+    <div class="guilds-grid" id="guildsList">
+      <% guilds.forEach(guild => { %>
+        <div class="guild-card" data-name="<%= guild.name.toLowerCase() %>">
+          <div class="guild-header">
+            <div class="guild-icon">
+              <% if (guild.icon) { %>
+                <img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt="<%= guild.name %>">
+              <% } else { %>
+                <%= guild.name.charAt(0) %>
+              <% } %>
+            </div>
+            <div class="guild-info">
+              <div class="guild-name"><%= guild.name %></div>
+              <div class="guild-meta">ID: <%= guild.id %></div>
+            </div>
+          </div>
+
+          <div class="guild-stats">
+            <div class="guild-stat">
+              <h4><%= guild.owner ? 'Owner' : 'Member' %></h4>
+              <p>Role</p>
+            </div>
+            <div class="guild-stat">
+              <h4><%= guild.permissions %></h4>
+              <p>Permissions</p>
+            </div>
+          </div>
+
+          <div class="guild-actions">
+            <a href="/dashboard/guild/<%= guild.id %>" class="btn btn-primary" style="flex:1;">Manage Server</a>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <script src="/js/dashboard.js"></script>
+  <script>
+    function filterGuilds() {
+      const search = document.getElementById('search').value.toLowerCase();
+      document.querySelectorAll('.guild-card').forEach(card => {
+        card.style.display = card.dataset.name.includes(search) ? '' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>

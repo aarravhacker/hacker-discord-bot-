@@ -1,0 +1,288 @@
+# 🤖 HACKER BOT — FULL SUMMARY
+
+**Name:** Hacker Bot | **Version:** 1.0.0 | **Prefix:** `!` | **Total Commands:** 1161
+
+---
+
+## 📊 CATEGORY BREAKDOWN
+
+| Category | Commands | Description |
+|----------|----------|-------------|
+| **Admin** | 75 | Server management, channels, roles, voice master |
+| **Moderation** | 90 | Bans, kicks, mutes, warns, purges, lockdown |
+| **Security** | 234 | Antinuke, antiraid, antibot, antilink, antispam, lockdown |
+| **Music** | 62 | Play, queue, filters, lyrics, radio, playlist |
+| **Fun** | 58 | Games, memes, trivia, hangman, wordle, 2048 |
+| **Utility** | 52 | Info, translate, weather, calc, poll, reminders |
+| **Economy** | 41 | Balance, shop, jobs, casino, rob, leaderboard |
+| **Automod** | 40 | Word filters, spam, caps, profanity, bad words |
+| **Logging** | 37 | Message, member, voice, mod, server logs |
+| **Owner** | 32 | Eval, exec, blacklist, broadcast, shutdown |
+| **Images** | 30 | Avatar, meme, jail, wanted, filters (blur/sepia) |
+| **Text** | 29 | ASCII, emoji, mock, uwu, vaporwave, zalgo |
+| **Welcome** | 27 | Welcome/goodbye messages, autorole, embeds |
+| **Leveling** | 20 | XP, ranks, profiles, level cards, roles |
+| **Reaction Roles** | 20 | Setup, backup, restore, modes |
+| **Math** | 15 | Calculator, trig, fibonacci, factorial |
+| **AI** | 10 | ChatGPT, jokes, stories, code, translate |
+| **Giveaway** | 10 | Create, end, reroll, list |
+| **Polls** | 10 | Create, vote, results, close |
+| **Reminders** | 10 | Set, edit, cancel, list |
+| **Dashboard** | 5 | Web panel (channels, members, security, settings) |
+| **Tickets** | 1 | Unified ticket system (20+ subcommands) |
+
+---
+
+## 🔐 SECURITY SYSTEM (234 commands)
+
+### Antinuke (125 cmds)
+- Channel/role/guild update detection, mass ban/kick
+- Thresholds, escalation, snapshots, rollback
+- Decoys, honeypots, trust system, forensics
+- Emergency mode, incident response, evidence collection
+
+### Antiraid (34 cmds)
+- Join velocity, mass invite detection
+- Raid modes: strict, normal, relaxed, custom
+- Captcha verification, raid bans, raid locks
+- Raid announcements, notifications, stats
+
+### Antibot (14 cmds)
+- Bot detection, monitoring, patterns
+- Velocity checks, intelligence, reports
+- Ignore list, health checks, scan
+
+### Antilink (25 cmds)
+- Link/invite filtering, domain whitelist/blacklist
+- Phishing detection, rate limiting
+- Archive, analytics, intelligence, reports
+
+### Antispam (16 cmds)
+- Flood detection, spam actions (ban/kick/mute/warn)
+- Caps filter, emoji spam, word patterns
+- Time-based limits, ignore list
+
+### Lockdown (20 cmds)
+- Channel/role lockdown, emergency mode
+- Schedule, audit, guard, health checks
+- Intelligence, patterns, recovery
+
+---
+
+## 🎵 MUSIC (62 commands)
+
+| Command | Description |
+|---------|-------------|
+| play/p | Play song from URL/search |
+| skip/next | Skip current song |
+| queue/q | View queue |
+| np/nowplaying/current | Now playing |
+| pause/resume | Pause/resume |
+| stop | Stop and clear |
+| loop | Toggle loop (track/queue/off) |
+| shuffle | Shuffle queue |
+| volume/vol | Set volume |
+| bassboost/nightcore/vaporwave | Audio filters |
+| 8d/lofi/karaoke/earrape | More filters |
+| lyrics | Fetch lyrics |
+| spotify | Play from Spotify |
+| radio | Internet radio |
+| playlist | Playlist management |
+| search | Search songs |
+| connect/join/leave | Voice controls |
+| 247 | Stay in voice channel |
+| grab | Save song |
+| queue management | pushfirst, clearqueue, loopqueue |
+
+---
+
+## 🛡️ MODERATION (90 commands)
+
+| Command | Description |
+|---------|-------------|
+| ban/unban | Ban/unban users |
+| kick | Kick users |
+| mute/unmute | Mute/unmute |
+| timeout | Temporary timeout |
+| warn/warns/warnings | Warning system |
+| clearwarnings | Clear warnings |
+| purge/purgeall/purgebot | Message purging |
+| lockdown/lock/unlock | Channel lockdown |
+| softban/tempban | Soft/temporary ban |
+| massban/masskick | Mass actions |
+| slowmode | Set slowmode |
+| snipe | Last deleted message |
+| nick | Change nickname |
+| deafen/undeafen | Voice deafen |
+| voicekick/voicemove | Voice moderation |
+| blacklist/whitelist | User lists |
+| modlogs/case/history | Mod logs |
+| antilink/antispam/antiraid | Auto-moderation |
+| owner | Owner-only commands |
+
+---
+
+## 🎮 FUN (58 commands)
+
+| Command | Description |
+|---------|-------------|
+| 2048 | 2048 game |
+| trivia | Trivia quiz |
+| wordle | Wordle game |
+| hangman | Hangman |
+| chess | Chess game |
+| connect4/tictactoe | Board games |
+| battleship | Battleship |
+| rps | Rock paper scissors |
+| meme/dankmeme | Memes |
+| joke/roast/compliment | Chat responses |
+| 8ball/magic8ball | Fortune telling |
+| ship/love/match | Love calculators |
+| coinflip/dice/roll | Random |
+| reddit | Reddit fetcher |
+| wouldyourather/wyr | Would you rather |
+| typerace | Typing race |
+| memory-game | Memory game |
+| country-guesser | Geography quiz |
+| hotornot | Rating game |
+
+---
+
+## 💰 ECONOMY (41 commands)
+
+| Command | Description |
+|---------|-------------|
+| bal/balance/wallet | Check balance |
+| daily/weekly/monthly/yearly | Daily rewards |
+| work/beg | Earn money |
+| shop/buy/sell | Item shop |
+| inventory/inv/items | Inventory |
+| casino/slot/slots | Gambling |
+| rob/steal | Rob others |
+| pay/transfer/send | Send money |
+| bank/dep/deposit/wd/withdraw | Banking |
+| leaderboard/lb/top | Rankings |
+| job/career/resign | Employment |
+| equip/unequip/use | Items |
+| jackpot | Jackpot game |
+
+---
+
+## 🤖 AI (10 commands)
+
+| Command | Description |
+|---------|-------------|
+| chatgpt | AI chat |
+| code | AI code generation |
+| explain | AI explanations |
+| story | AI stories |
+| joke/roast/compliment | AI responses |
+| imagine | AI image gen |
+| translate | AI translation |
+
+---
+
+## 📝 WELCOME (27 commands)
+
+| Command | Description |
+|---------|-------------|
+| setwelcome/setgoodbye | Setup messages |
+| welcomechannel/goodbyechannel | Set channels |
+| welcomemsg/goodbyemsg | Custom messages |
+| welcomeembed/goodbyeembed | Embed toggles |
+| welcomecolor/goodbyecolor | Embed colors |
+| welcomeimage/goodbyeimage | Custom images |
+| welcomeauthor/goodbyeembed | Embed author |
+| welcomefields/welcomefooter | Extra fields |
+| welcomepreview/goodbyepreview | Preview |
+| welcomeconfig/goodbyeconfig | View config |
+| autorole | Auto-assign role |
+
+---
+
+## 🎫 TICKETS (1 unified command, 20+ subcommands)
+
+| Subcommand | Description |
+|------------|-------------|
+| enable/disable | Toggle system |
+| setup | Auto-configure |
+| panel | Send panel embed |
+| config | View settings |
+| stats | Ticket statistics |
+| list | List open tickets |
+| open | Create ticket |
+| close | Close (modal with reason) |
+| reopen | Reopen (modal with reason) |
+| claim/unclaim | Claim ticket |
+| add/remove | Add/remove users |
+| transfer | Transfer ownership |
+| priority | Set priority |
+| note | Internal staff note |
+| rating | Rate experience (1-5) |
+| rename | Rename channel |
+| transcript | View transcript |
+| delete | Delete ticket |
+| category set/remove | Category |
+| log set/remove | Log channel |
+| role set/remove | Support role |
+| limit | Max tickets/user |
+| message | Panel message |
+
+---
+
+## 📊 EVENTS (21 handlers)
+
+| Event | What it does |
+|-------|-------------|
+| messageCreate | Prefix commands, AFK, auto-react, automod, antilink, antispam, level XP |
+| messageDelete | Snipe cache, message logging |
+| messageUpdate | Edit logging |
+| guildMemberAdd | Welcome, auto-role, antiraid join check |
+| guildMemberRemove | Goodbye |
+| guildMemberUpdate | Nickname/role logging |
+| guildBanAdd/Remove | Ban logging |
+| channelCreate/Delete/Update | Antinuke channel protection |
+| roleCreate/Delete/Update | Antinuke role protection |
+| guildUpdate | Antinuke guild protection |
+| guildAuditLogEntryCreate | Audit log processing |
+| voiceStateUpdate | Voice logging, antiraid voice |
+| presenceUpdate | Status tracking |
+| interactionCreate | Slash commands, button handlers, modals |
+| integrationCreate | Integration tracking |
+| webhooksUpdate | Webhook monitoring |
+
+---
+
+## ⚙️ TECH STACK
+
+| Component | Technology |
+|-----------|-----------|
+| Runtime | Node.js v24.16.0 |
+| Discord.js | v14.14.1 |
+| Database | SQLite3 + Knex.js |
+| AI | Google Gemini 2.0 Flash |
+| Music | Shoukaku (Lavalink) + @discordjs/voice + FFmpeg + yt-dlp |
+| Web Panel | Express.js + EJS + Passport-Discord |
+| Logging | Winston |
+| Process | PM2 |
+
+---
+
+## 🎨 EMBED COLORS
+
+| Color | Hex |
+|-------|-----|
+| Success | #00FF00 |
+| Error | #FF0000 |
+| Warning | #FFFF00 |
+| Info | #9932CC |
+| Security | #FF6B00 |
+| Music | #1DB954 |
+| Fun | #FF4500 |
+| Economy | #FFD700 |
+| Admin | #9932CC |
+| Primary | #5865F2 |
+
+---
+
+**Total: 1161 commands across 23 categories + 21 event handlers + web dashboard**

@@ -1,0 +1,58 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+bot-error.log
+bot-output.log
+bot-stderr.log
+bot-stdout.log
+
+# Runtime data
+hacker_bot.db
+
+# Lavalink
+lavalink/temp/
+lavalink/swarm/
+
+# Build artifacts
+.next/
+out/
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+DockerDesktopInstaller.exe
+docker-compose.override.yml
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.tgz
+*.tar.gz
+.cache/

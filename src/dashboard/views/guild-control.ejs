@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Control - Hacker Bot</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .search-box { max-width: 300px; margin-bottom: 15px; }
+    .list { max-height: 500px; overflow-y: auto; }
+    .empty-state { text-align: center; padding: 40px; color: var(--text-dim); }
+    .loading { text-align: center; padding: 30px; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/" class="nav-logo"><span class="logo-icon">H</span> Hacker Bot</a>
+    <div class="nav-right">
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/dashboard/guild/<%= guildId %>/embed" class="nav-link">Embed Builder</a>
+      <a href="/dashboard/guilds" class="nav-link">Servers</a>
+      <a href="/auth/logout" class="nav-link">Logout</a>
+      <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" class="nav-avatar" alt="">
+    </div>
+  </nav>
+
+  <div class="container-wide">
+    <h1 class="page-title">Server Control</h1>
+    <p class="page-subtitle">Guild ID: <span class="font-mono"><%= guildId %></span></p>
+
+    <div class="stats-grid" id="statsRow">
+      <div class="stat-mini"><h4 id="sMembers">-</h4><p>Members</p></div>
+      <div class="stat-mini"><h4 id="sChannels">-</h4><p>Channels</p></div>
+      <div class="stat-mini"><h4 id="sRoles">-</h4><p>Roles</p></div>
+      <div class="stat-mini"><h4 id="sOnline">-</h4><p>Online</p></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('channels')">Channels</button>
+      <button class="tab" onclick="switchTab('members')">Members</button>
+      <button class="tab" onclick="switchTab('roles')">Roles</button>
+      <button class="tab" onclick="switchTab('permissions')">Permissions</button>
+      <button class="tab" onclick="switchTab('security')">Security</button>
+      <button class="tab" onclick="switchTab('logs')">Audit Logs</button>
+    </div>
+
+    <!-- CHANNELS TAB -->
+    <div id="channels" class="panel active">
+      <div class="card">
+        <div class="card-header">
+          <h3>Channels</h3>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-success" onclick="showCreateChannel()">+ Create Channel</button>
+          </div>
+        </div>
+        <input type="text" class="search-box" placeholder="Search channels..." oninput="filterList('channelList', this.value)">
+        <div class="list" id="channelList"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- MEMBERS TAB -->
+    <div id="members" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <h3>Members</h3>
+          <span id="memberCount" style="color:#888;"></span>
+        </div>
+        <input type="text" class="search-box" placeholder="Search members..." oninput="filterList('memberList', this.value)">
+        <div class="list" id="memberList"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ROLES TAB -->
+    <div id="roles" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <h3>Roles</h3>
+          <button class="btn btn-success" onclick="showCreateRole()">+ Create Role</button>
+        </div>
+        <div class="list" id="roleList"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- PERMISSIONS TAB -->
+    <div id="permissions" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <h3>Channel Permissions</h3>
+        </div>
+        <div class="form-group">
+          <label>Select Channel</label>
+          <select id="permChannelSelect" onchange="loadChannelPerms()" style="width:100%;padding:10px;border:1px solid #0f3460;border-radius:8px;background:#1a1a2e;color:#fff;">
+            <option value="">Choose channel...</option>
+          </select>
+        </div>
+        <div id="permEditor"></div>
+      </div>
+    </div>
+
+    <!-- SECURITY TAB -->
+    <div id="security" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <h3>Security Center</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="loadSecurity()">Refresh</button>
+            <button class="btn btn-danger btn-sm" onclick="lockdownAll()">🔒 Lock All Channels</button>
+            <button class="btn btn-success btn-sm" onclick="unlockAll()">🔓 Unlock All Channels</button>
+          </div>
+        </div>
+
+        <div class="section-title">Security Modules</div>
+        <div class="protection-grid" style="margin-bottom:24px;">
+          <div class="security-module">
+            <div class="security-module-info"><strong>Anti-Nuke</strong><small>Mass delete/create protection</small></div>
+            <label class="toggle"><input type="checkbox" id="tog_antinuke" onchange="toggleSecurity('antinuke', this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="security-module">
+            <div class="security-module-info"><strong>Anti-Raid</strong><small>Join raid protection</small></div>
+            <label class="toggle"><input type="checkbox" id="tog_antiraid" onchange="toggleSecurity('antiraid', this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="security-module">
+            <div class="security-module-info"><strong>Anti-Bot</strong><small>Unauthorized bot protection</small></div>
+            <label class="toggle"><input type="checkbox" id="tog_antibot" onchange="toggleSecurity('antibot', this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="security-module">
+            <div class="security-module-info"><strong>Anti-Link</strong><small>Link/invite protection</small></div>
+            <label class="toggle"><input type="checkbox" id="tog_antilink" onchange="toggleSecurity('antilink', this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="security-module">
+            <div class="security-module-info"><strong>Anti-Spam</strong><small>Message spam protection</small></div>
+            <label class="toggle"><input type="checkbox" id="tog_antispam" onchange="toggleSecurity('antispam', this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="security-module">
+            <div class="security-module-info"><strong>Lockdown</strong><small>Emergency lockdown mode</small></div>
+            <label class="toggle"><input type="checkbox" id="tog_lockdown" onchange="toggleSecurity('lockdown', this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <!-- BYPASS ROLES -->
+        <div class="section-title">Bypass Roles <span style="font-weight:400;text-transform:none;letter-spacing:0;">(members with these roles skip security checks)</span></div>
+        <div class="protection-grid" style="margin-bottom:24px;">
+          <div class="security-module">
+            <div class="security-module-info"><strong>Anti-Nuke Bypass</strong><small id="anBypassRole">Loading...</small></div>
+            <button class="btn btn-secondary btn-sm" onclick="createBypassRole('antinuke')">Auto-Create</button>
+          </div>
+          <div class="security-module">
+            <div class="security-module-info"><strong>Anti-Raid Bypass</strong><small id="arBypassRole">Loading...</small></div>
+            <button class="btn btn-secondary btn-sm" onclick="createBypassRole('antiraid')">Auto-Create</button>
+          </div>
+          <div class="security-module">
+            <div class="security-module-info"><strong>Anti-Spam Bypass</strong><small id="asBypassRole">Loading...</small></div>
+            <button class="btn btn-secondary btn-sm" onclick="createBypassRole('antispam')">Auto-Create</button>
+          </div>
+        </div>
+
+        <!-- EMERGENCY ACTIONS -->
+        <div class="section-title">Emergency Actions</div>
+        <div class="quick-actions" style="margin-bottom:24px;">
+          <div class="quick-action" onclick="raidPurge()"><div class="icon">☠️</div><div class="label">Raid Purge (24h)</div></div>
+          <div class="quick-action" onclick="raidPurge48()"><div class="icon">☠️</div><div class="label">Raid Purge (48h)</div></div>
+          <div class="quick-action" onclick="botPurge()"><div class="icon">🤖</div><div class="label">Remove All Bots</div></div>
+          <div class="quick-action" onclick="createSnapshot()"><div class="icon">📸</div><div class="label">Create Snapshot</div></div>
+        </div>
+
+        <!-- CONFIG SECTIONS -->
+        <div class="grid-2">
+          <!-- ANTI-NUKE CONFIG -->
+          <div>
+            <div class="section-title">Anti-Nuke Config</div>
+            <div class="form-card">
+              <div class="form-row">
+                <div class="form-group"><label>Max Channel Delete</label><input type="number" id="cfg_an_maxChDel" value="3" min="1" max="20" class="form-input"></div>
+                <div class="form-group"><label>Max Channel Create</label><input type="number" id="cfg_an_maxChCreate" value="3" min="1" max="20" class="form-input"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Max Role Delete</label><input type="number" id="cfg_an_maxRoleDel" value="3" min="1" max="20" class="form-input"></div>
+                <div class="form-group"><label>Max Role Create</label><input type="number" id="cfg_an_maxRoleCreate" value="3" min="1" max="20" class="form-input"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Max Member Ban</label><input type="number" id="cfg_an_maxBan" value="3" min="1" max="20" class="form-input"></div>
+                <div class="form-group"><label>Max Member Kick</label><input type="number" id="cfg_an_maxKick" value="3" min="1" max="20" class="form-input"></div>
+              </div>
+              <div class="form-group"><label>Time Window (ms)</label><input type="number" id="cfg_an_timeWindow" value="60000" min="10000" step="10000" class="form-input"></div>
+              <button class="btn btn-success btn-sm" onclick="saveAntinukeConfig()">Save</button>
+            </div>
+          </div>
+
+          <!-- ANTI-RAID CONFIG -->
+          <div>
+            <div class="section-title">Anti-Raid Config</div>
+            <div class="form-card">
+              <div class="form-row">
+                <div class="form-group"><label>Join Threshold</label><input type="number" id="cfg_ar_joinThreshold" value="5" min="2" max="50" class="form-input"></div>
+                <div class="form-group"><label>Time Window (s)</label><input type="number" id="cfg_ar_timeWindow" value="10" min="5" max="300" class="form-input"></div>
+              </div>
+              <div class="form-group"><label>Action</label>
+                <select id="cfg_ar_action" class="form-select"><option value="kick">Kick</option><option value="ban">Ban</option><option value="mute">Mute</option><option value="timeout">Timeout</option></select>
+              </div>
+              <div class="form-group"><label>Alert Channel</label><select id="cfg_ar_alertChannel" class="form-select"><option value="">None</option></select></div>
+              <button class="btn btn-success btn-sm" onclick="saveAntiraidConfig()">Save</button>
+            </div>
+          </div>
+
+          <!-- ANTI-BOT CONFIG -->
+          <div>
+            <div class="section-title">Anti-Bot Config</div>
+            <div class="form-card">
+              <div class="form-group"><label>Action</label>
+                <select id="cfg_ab_action" class="form-select"><option value="kick">Kick</option><option value="ban">Ban</option><option value="timeout">Timeout</option></select>
+              </div>
+              <div class="form-group"><label>Alert Channel</label><select id="cfg_ab_alertChannel" class="form-select"><option value="">None</option></select></div>
+              <div class="form-group">
+                <label>Allowed Bot IDs (one per line)</label>
+                <textarea id="cfg_ab_allowedBots" rows="3" placeholder="123456789&#10;987654321" class="form-textarea"></textarea>
+              </div>
+              <button class="btn btn-success btn-sm" onclick="saveAntibotConfig()">Save</button>
+            </div>
+          </div>
+
+          <!-- ANTI-SPAM CONFIG -->
+          <div>
+            <div class="section-title">Anti-Spam Config</div>
+            <div class="form-card">
+              <div class="form-row">
+                <div class="form-group"><label>Message Limit</label><input type="number" id="cfg_as_msgLimit" value="5" min="2" max="20" class="form-input"></div>
+                <div class="form-group"><label>Time Window (s)</label><input type="number" id="cfg_as_timeWindow" value="5" min="2" max="60" class="form-input"></div>
+              </div>
+              <div class="form-group"><label>Action</label>
+                <select id="cfg_as_action" class="form-select"><option value="mute">Mute</option><option value="kick">Kick</option><option value="ban">Ban</option><option value="warn">Warn</option><option value="timeout">Timeout</option></select>
+              </div>
+              <div class="form-group"><label>Ignored Channels (comma IDs)</label><input type="text" id="cfg_as_ignoredChannels" placeholder="123,456" class="form-input"></div>
+              <div class="form-group"><label>Ignored Roles (comma IDs)</label><input type="text" id="cfg_as_ignoredRoles" placeholder="123,456" class="form-input"></div>
+              <button class="btn btn-success btn-sm" onclick="saveAntispamConfig()">Save</button>
+            </div>
+          </div>
+
+          <!-- ANTI-LINK CONFIG -->
+          <div>
+            <div class="section-title">Anti-Link Config</div>
+            <div class="form-card">
+              <div class="form-group"><label>Action</label>
+                <select id="cfg_al_action" class="form-select"><option value="delete">Delete</option><option value="warn">Warn</option><option value="mute">Mute</option><option value="kick">Kick</option></select>
+              </div>
+              <div class="form-group">
+                <label>Whitelisted Domains (one per line)</label>
+                <textarea id="cfg_al_whitelistedDomains" rows="3" placeholder="youtube.com&#10;github.com" class="form-textarea"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Allowed Link Patterns (comma separated)</label>
+                <input type="text" id="cfg_al_allowedPatterns" placeholder="cdn.discordapp.com, media.giphy.com" class="form-input">
+              </div>
+              <div class="form-group"><label>Ignored Channels (comma IDs)</label><input type="text" id="cfg_al_ignoredChannels" placeholder="123,456" class="form-input"></div>
+              <div class="form-group"><label>Ignored Roles (comma IDs)</label><input type="text" id="cfg_al_ignoredRoles" placeholder="123,456" class="form-input"></div>
+              <button class="btn btn-success btn-sm" onclick="saveAntilinkConfig()">Save</button>
+            </div>
+          </div>
+
+          <!-- LOCKDOWN CONFIG -->
+          <div>
+            <div class="section-title">Lockdown Config</div>
+            <div class="form-card">
+              <div class="form-group"><label>Lockdown Action</label>
+                <select id="cfg_ld_action" class="form-select"><option value="readonly">Read-Only</option><option value="hidden">Hidden (hide channel)</option><option value="slowmode">Slowmode (60s)</option></select>
+              </div>
+              <div class="form-group"><label>Auto-Unlock After (minutes, 0=manual)</label><input type="number" id="cfg_ld_autoUnlock" value="0" min="0" max="1440" class="form-input"></div>
+              <div class="form-group"><label>Alert Channel</label><select id="cfg_ld_alertChannel" class="form-select"><option value="">None</option></select></div>
+              <div class="form-group">
+                <label>Emergency Bypass Roles (comma IDs)</label>
+                <input type="text" id="cfg_ld_bypassRoles" placeholder="123,456" class="form-input">
+              </div>
+              <button class="btn btn-success btn-sm" onclick="saveLockdownConfig()">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOG CHANNEL -->
+        <div class="section-title">Log Channel</div>
+        <div class="form-card mb-lg">
+          <div class="form-group">
+            <select id="logChannelSelect" class="form-select">
+              <option value="">No log channel</option>
+            </select>
+          </div>
+          <button class="btn btn-success btn-sm" onclick="saveLogChannel()">Save Log Channel</button>
+        </div>
+
+        <!-- WHITELIST / BLACKLIST -->
+        <div class="section-title">Whitelist / Blacklist</div>
+        <div class="grid-2 mb-lg">
+          <div class="form-card">
+            <div class="section-title" style="color:var(--accent);">Whitelist (Protected Users)</div>
+            <div id="whitelistDisplay" style="margin-bottom:10px;color:var(--text-muted);font-size:0.85rem;">Loading...</div>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="whitelistInput" placeholder="User ID" class="form-input" style="flex:1;">
+              <button class="btn btn-success btn-sm" onclick="addWhitelist()">Add</button>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="section-title" style="color:var(--red);">Blacklist (Banned Users)</div>
+            <div id="blacklistDisplay" style="margin-bottom:10px;color:var(--text-muted);font-size:0.85rem;">Loading...</div>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="blacklistInput" placeholder="User ID" class="form-input" style="flex:1;">
+              <button class="btn btn-danger btn-sm" onclick="addBlacklist()">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRUST SYSTEM -->
+        <div class="section-title">Trust System</div>
+        <div class="form-card mb-lg">
+          <div id="trustDisplay" style="margin-bottom:10px;color:var(--text-muted);font-size:0.85rem;">Loading...</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="trustUserId" placeholder="User ID" class="form-input" style="width:150px;">
+            <input type="number" id="trustScore" placeholder="Score" class="form-input" style="width:100px;">
+            <button class="btn btn-blue btn-sm" onclick="updateTrust()">Update Trust</button>
+            <button class="btn btn-danger btn-sm" onclick="flagTrust()">Flag User</button>
+          </div>
+        </div>
+
+        <!-- SECURITY INCIDENTS -->
+        <div class="section-title">Security Incidents</div>
+        <div class="form-card mb-lg">
+          <div id="incidentDisplay" style="color:var(--text-muted);font-size:0.85rem;">Loading...</div>
+        </div>
+
+        <!-- SECURITY SNAPSHOTS -->
+        <div class="section-title">Security Snapshots</div>
+        <div class="form-card mb-lg">
+          <div id="snapshotDisplay" style="color:var(--text-muted);font-size:0.85rem;">Loading...</div>
+        </div>
+
+        <!-- SECURITY LOGS -->
+        <div class="section-title">Security Action Logs</div>
+        <div class="form-card" style="max-height:300px;overflow-y:auto;">
+          <div id="securityLogDisplay" style="color:var(--text-muted);font-size:0.85rem;">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT LOGS TAB -->
+    <div id="logs" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <h3>Moderation Logs</h3>
+          <button class="btn btn-secondary" onclick="loadLogs()">Refresh</button>
+        </div>
+        <div class="list" id="logList"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE CHANNEL MODAL -->
+  <div class="modal-overlay" id="createChannelModal">
+    <div class="modal">
+      <div class="modal-title">Create Channel</div>
+      <div class="form-group">
+        <label>Channel Name</label>
+        <input type="text" id="newChannelName" placeholder="my-channel" class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="newChannelType" class="form-select">
+            <option value="text">Text</option>
+            <option value="voice">Voice</option>
+            <option value="announcement">Announcement</option>
+            <option value="stage">Stage</option>
+            <option value="forum">Forum</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="newChannelCategory" class="form-select"><option value="">None</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Topic (optional)</label>
+        <input type="text" id="newChannelTopic" placeholder="Channel topic" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>NSFW</label>
+        <label class="toggle"><input type="checkbox" id="newChannelNsfw"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="createChannel()">Create</button>
+        <button class="btn btn-secondary" onclick="closeModal('createChannelModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT CHANNEL MODAL -->
+  <div class="modal-overlay" id="editChannelModal">
+    <div class="modal">
+      <div class="modal-title">Edit Channel</div>
+      <input type="hidden" id="editCh_id">
+      <div class="form-group">
+        <label>Channel Name</label>
+        <input type="text" id="editCh_name" placeholder="channel-name" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Topic</label>
+        <input type="text" id="editCh_topic" placeholder="Channel topic" class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="editCh_category" class="form-select"><option value="">None</option></select>
+        </div>
+        <div class="form-group">
+          <label>Slowmode (seconds)</label>
+          <input type="number" id="editCh_slowmode" value="0" min="0" max="21600" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>NSFW</label>
+        <label class="toggle"><input type="checkbox" id="editCh_nsfw"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="saveEditChannel()">Save Changes</button>
+        <button class="btn btn-secondary" onclick="closeModal('editChannelModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE ROLE MODAL -->
+  <div class="modal-overlay" id="createRoleModal">
+    <div class="modal">
+      <div class="modal-title">Create Role</div>
+      <div class="form-group">
+        <label>Role Name</label>
+        <input type="text" id="newRoleName" placeholder="New Role" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-picker">
+          <input type="color" id="newRoleColor" value="#5865f2">
+          <input type="text" id="newRoleColorHex" value="#5865f2" class="form-input" style="flex:1;" oninput="document.getElementById('newRoleColor').value=this.value">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hoist (separate in list)</label>
+          <label class="toggle"><input type="checkbox" id="newRoleHoist"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="form-group">
+          <label>Mentionable</label>
+          <label class="toggle"><input type="checkbox" id="newRoleMention"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Permissions</label>
+        <div class="perm-grid" id="rolePermGrid"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="createRole()">Create</button>
+        <button class="btn btn-secondary" onclick="closeModal('createRoleModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT ROLE PERMISSIONS MODAL -->
+  <div class="modal-overlay" id="editRolePermsModal">
+    <div class="modal">
+      <div class="modal-title">Edit Role Permissions</div>
+      <input type="hidden" id="editRoleId">
+      <div class="perm-grid" id="editRolePermGrid"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="saveRolePerms()">Save</button>
+        <button class="btn btn-secondary" onclick="closeModal('editRolePermsModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT ROLE MODAL -->
+  <div class="modal-overlay" id="editRoleModal">
+    <div class="modal">
+      <div class="modal-title">Edit Role</div>
+      <input type="hidden" id="erole_Id">
+      <div class="form-group"><label>Role Name</label><input type="text" id="erole_name" class="form-input"></div>
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-picker">
+          <input type="color" id="erole_color" value="#5865f2">
+          <input type="text" id="erole_colorHex" value="#5865f2" class="form-input" style="flex:1;" oninput="document.getElementById('erole_color').value=this.value">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Hoist</label><label class="toggle"><input type="checkbox" id="erole_hoist"><span class="toggle-slider"></span></label></div>
+        <div class="form-group"><label>Mentionable</label><label class="toggle"><input type="checkbox" id="erole_mention"><span class="toggle-slider"></span></label></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="saveRoleEdit()">Save</button>
+        <button class="btn btn-secondary" onclick="closeModal('editRoleModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMBER ROLES MODAL -->
+  <div class="modal-overlay" id="memberRolesModal">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-title" id="memberRolesTitle">Edit Member Roles</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;">
+        <img id="memberRolesAvatar" src="" style="width:48px;height:48px;border-radius:50%;">
+        <div>
+          <div id="memberRolesName" style="font-weight:600;color:var(--text-primary);"></div>
+          <div id="memberRolesId" style="color:var(--text-muted);font-size:0.8rem;"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Current Roles</label>
+        <div id="memberCurrentRoles" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Nickname</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="memberNickname" placeholder="Set nickname" class="form-input" style="flex:1;">
+          <button class="btn btn-secondary btn-sm" onclick="saveNickname()">Save</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Add/Remove Roles</label>
+        <div id="memberAllRoles" style="max-height:250px;overflow-y:auto;background:var(--bg-input);border:1px solid var(--border-primary);border-radius:var(--radius-md);padding:10px;"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="saveMemberRoles()">Save Roles</button>
+        <button class="btn btn-secondary" onclick="closeModal('memberRolesModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const guildId = '<%= guildId %>';
+
+    async function fetchJSON(url, opts = {}) {
+      const res = await fetch(url, { credentials: 'include', ...opts });
+      if (res.status === 401 || res.status === 403) {
+        const text = await res.text();
+        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+          showToast('Session expired. Please refresh.', 'error');
+          return { error: 'Session expired' };
+        }
+      }
+      try { return await res.json(); } catch(e) { showToast('Failed to parse response', 'error'); return { error: 'Invalid response' }; }
+    }
+
+    const ALL_PERMS = [
+      'Administrator','ManageGuild','ManageRoles','ManageChannels','ManageMessages',
+      'KickMembers','BanMembers','ModerateMembers','MentionEveryone',
+      'ManageWebhooks','ManageEmojisAndStickers','ViewAuditLog',
+      'SendMessages','SendMessagesInThreads','CreatePublicThreads','CreatePrivateThreads',
+      'AddReactions','EmbedLinks','AttachFiles','UseExternalEmojis','UseExternalStickers',
+      'ReadMessageHistory','MentionEveryone','UseApplicationCommands',
+      'Connect','Speak','Stream','UseVAD','PrioritySpeaker','MuteMembers','DeafenMembers','MoveMembers',
+      'ViewChannel','ChangeNickname','ManageNicknames','ViewGuildInsights',
+      'CreateInstantInvite','ManageThreads','UseEmbeddedActivities'
+    ];
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      const panel = document.getElementById(tab);
+      if (panel) panel.classList.add('active');
+      document.querySelectorAll('.tab').forEach(t => {
+        if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${tab}'`)) t.classList.add('active');
+      });
+      if (tab === 'channels') loadChannels();
+      if (tab === 'members') loadMembers();
+      if (tab === 'roles') loadRoles();
+      if (tab === 'permissions') loadPermChannels();
+      if (tab === 'logs') loadLogs();
+    }
+
+    function filterList(listId, query) {
+      const items = document.querySelectorAll(`#${listId} .list-item`);
+      items.forEach(item => {
+        const name = item.dataset.name || '';
+        item.style.display = name.toLowerCase().includes(query.toLowerCase()) ? 'flex' : 'none';
+      });
+    }
+
+    function showToast(msg, type) {
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // ========== CHANNELS ==========
+    async function loadChannels() {
+      try {
+        const data = await fetchJSON(`/api/guild/${guildId}/channels`);
+        const list = document.getElementById('channelList');
+        if (data.error) { list.innerHTML = `<div class="empty-state">${data.error}</div>`; return; }
+        document.getElementById('sChannels').textContent = data.channels.length;
+        const categories = data.channels.filter(c => c.type === 4);
+        const catSelect = document.getElementById('newChannelCategory');
+        catSelect.innerHTML = '<option value="">None</option>';
+        categories.forEach(c => { catSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+
+        list.innerHTML = data.channels.map(c => {
+          const typeIcon = c.type === 2 ? '🔊' : c.type === 4 ? '📁' : c.type === 5 ? '📢' : '#';
+          const isText = c.type === 0;
+          return `<div class="list-item" data-name="${c.name}">
+            <div class="item-info">
+              <div class="item-name">${typeIcon} ${c.name} <span class="channel-type-badge">${c.type === 2 ? 'VOICE' : c.type === 4 ? 'CATEGORY' : c.type === 5 ? 'ANNOUNCE' : 'TEXT'}</span></div>
+              <div class="item-meta">ID: ${c.id} | Position: ${c.position}</div>
+            </div>
+            <div class="item-actions">
+              ${isText ? `<button class="btn btn-secondary btn-sm" onclick="openEditChannel('${c.id}','${c.name}',${c.type})">Edit</button>` : ''}
+              ${isText ? `<button class="btn btn-secondary btn-sm" onclick="cloneChannel('${c.id}','${c.name}')">Clone</button>` : ''}
+              ${isText ? `<button class="btn btn-primary btn-sm" onclick="lockChannel('${c.id}','${c.name}')">Lock</button>` : ''}
+              ${isText ? `<button class="btn btn-success btn-sm" onclick="unlockChannel('${c.id}','${c.name}')">Unlock</button>` : ''}
+              <button class="btn btn-danger btn-sm" onclick="deleteChannel('${c.id}','${c.name}')">Del</button>
+            </div>
+          </div>`;
+        }).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    function showCreateChannel() { document.getElementById('createChannelModal').classList.add('active'); }
+
+    async function createChannel() {
+      const name = document.getElementById('newChannelName').value.trim();
+      if (!name) return showToast('Enter a channel name', 'error');
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/create-channel`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            name, type: document.getElementById('newChannelType').value,
+            category: document.getElementById('newChannelCategory').value || null,
+            topic: document.getElementById('newChannelTopic').value || null,
+            nsfw: document.getElementById('newChannelNsfw').checked
+          })
+        });
+        const data = res;
+        if (data.success) { showToast(data.message, 'success'); closeModal('createChannelModal'); loadChannels(); }
+        else showToast(data.error, 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    function openEditChannel(id, name, type) {
+      document.getElementById('editCh_id').value = id;
+      document.getElementById('editCh_name').value = name;
+      const catSelect = document.getElementById('editCh_category');
+      const existingOptions = catSelect.querySelectorAll('option[value]:not([value=""])');
+      existingOptions.forEach(o => o.remove());
+      const channelOpts = document.querySelectorAll('#channelList .list-item');
+      const catList = document.getElementById('channelList');
+      const categories = [];
+      catList.querySelectorAll('.list-item').forEach(el => {
+        const badge = el.querySelector('.channel-type-badge');
+        if (badge && badge.textContent === 'CATEGORY') {
+          const idMatch = el.querySelector('.item-meta')?.textContent?.match(/ID: (\d+)/);
+          const nameText = el.querySelector('.item-name')?.textContent?.replace('📁', '').replace('CATEGORY', '').trim();
+          if (idMatch) categories.push({ id: idMatch[1], name: nameText });
+        }
+      });
+      categories.forEach(c => {
+        catSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+      });
+      document.getElementById('editCh_nsfw').checked = false;
+      document.getElementById('editCh_slowmode').value = 0;
+      document.getElementById('editChannelModal').classList.add('active');
+    }
+
+    async function saveEditChannel() {
+      const id = document.getElementById('editCh_id').value;
+      const name = document.getElementById('editCh_name').value.trim();
+      if (!name) return showToast('Enter channel name', 'error');
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/channel/${id}/edit`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            name, topic: document.getElementById('editCh_topic').value || '',
+            nsfw: document.getElementById('editCh_nsfw').checked,
+            slowmode: parseInt(document.getElementById('editCh_slowmode').value) || 0,
+            category: document.getElementById('editCh_category').value || null
+          })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+        if (data.success) { closeModal('editChannelModal'); loadChannels(); }
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function cloneChannel(id, name) {
+      if (!confirm(`Clone #${name}?`)) return;
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/channel/${id}/clone`, { method: 'POST' });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+        if (data.success) loadChannels();
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function lockChannel(id, name) {
+      if (!confirm(`Lock #${name}?`)) return;
+      const r = await fetchJSON(`/api/guild/${guildId}/channel/${id}/lock`, {method:'POST'});
+      const d = await r.json(); showToast(d.message||d.error, d.success?'success':'error');
+    }
+    async function unlockChannel(id, name) {
+      if (!confirm(`Unlock #${name}?`)) return;
+      const r = await fetchJSON(`/api/guild/${guildId}/channel/${id}/unlock`, {method:'POST'});
+      const d = await r.json(); showToast(d.message||d.error, d.success?'success':'error');
+    }
+    async function deleteChannel(id, name) {
+      if (!confirm(`DELETE #${name}? This cannot be undone!`)) return;
+      const r = await fetchJSON(`/api/guild/${guildId}/channel/${id}/delete`, {method:'POST'});
+      const d = await r.json(); showToast(d.message||d.error, d.success?'success':'error');
+      if (d.success) loadChannels();
+    }
+
+    // ========== MEMBERS ==========
+    let allMembersData = [];
+    async function loadMembers() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/members`);
+        const data = res;
+        const list = document.getElementById('memberList');
+        if (data.error) { list.innerHTML = `<div class="empty-state">${data.error}</div>`; return; }
+        allMembersData = data.members;
+        document.getElementById('memberCount').textContent = `${data.members.length} loaded`;
+        document.getElementById('sMembers').textContent = data.members.length;
+
+        list.innerHTML = data.members.map(m => {
+          const avatarUrl = m.avatar ? `https://cdn.discordapp.com/avatars/${m.id}/${m.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png';
+          const isOwner = m.id === '<%= user.id %>';
+          const isAdmin = m.roles.some(r => r.toLowerCase().includes('admin'));
+          const badgeClass = isOwner ? 'badge-owner' : isAdmin ? 'badge-admin' : 'badge-member';
+          const badgeText = isOwner ? 'OWNER' : isAdmin ? 'ADMIN' : '';
+          const statusColor = m.status === 'online' ? '#00ff88' : m.status === 'idle' ? '#ffd700' : m.status === 'dnd' ? '#ff4444' : '#666';
+          return `<div class="list-item" data-name="${m.displayName || m.tag}">
+            <div class="item-info" style="display:flex;align-items:center;">
+              <img src="${avatarUrl}" class="member-avatar" style="border: 2px solid ${statusColor};">
+              <div>
+                <div class="item-name">${m.displayName || m.tag} ${badgeText ? `<span class="badge ${badgeClass}">${badgeText}</span>` : ''}</div>
+                <div class="item-meta">${m.tag} | Roles: ${m.roles.slice(0,3).join(', ')}${m.roles.length > 3 ? ` +${m.roles.length-3}` : ''}</div>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-primary btn-sm" onclick="openMemberRoles('${m.id}')">Roles</button>
+              <button class="btn btn-secondary btn-sm" onclick="timeoutMember('${m.id}','${m.displayName||m.tag}')">Timeout</button>
+              <button class="btn btn-danger btn-sm" onclick="kickMember('${m.id}','${m.displayName||m.tag}')">Kick</button>
+              <button class="btn btn-danger btn-sm" onclick="banMember('${m.id}','${m.displayName||m.tag}')">Ban</button>
+            </div>
+          </div>`;
+        }).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function openMemberRoles(memberId) {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/member/${memberId}/info`);
+        const data = res;
+        if (data.error) return showToast(data.error, 'error');
+
+        document.getElementById('memberRolesTitle').textContent = `Edit Roles — ${data.tag}`;
+        document.getElementById('memberRolesAvatar').src = data.avatar;
+        document.getElementById('memberRolesName').textContent = data.displayName || data.tag;
+        document.getElementById('memberRolesId').textContent = `ID: ${data.id}`;
+        document.getElementById('memberNickname').value = data.displayName || '';
+
+        const currentRolesEl = document.getElementById('memberCurrentRoles');
+        currentRolesEl.innerHTML = data.roles.filter(r => r.name !== '@everyone').map(r =>
+          `<span style="background:${r.color || '#0f3460'};padding:4px 10px;border-radius:4px;font-size:0.8rem;color:#fff;">${r.name}</span>`
+        ).join('') || '<span style="color:#888;">No roles</span>';
+
+        const allRolesEl = document.getElementById('memberAllRoles');
+        allRolesEl.innerHTML = data.allRoles.map(r => {
+          const checked = r.has ? 'checked' : '';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #0f3460;">
+            <input type="checkbox" id="mr_${r.id}" ${checked} style="accent-color:#00ff88;">
+            <span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block;"></span>
+            <label for="mr_${r.id}" style="color:#ddd;font-size:0.85rem;cursor:pointer;">${r.name}</label>
+          </div>`;
+        }).join('');
+
+        document.getElementById('memberRolesModal').classList.add('active');
+        document.getElementById('memberRolesModal').dataset.memberId = memberId;
+      } catch (e) { showToast('Failed to load member info', 'error'); }
+    }
+
+    async function saveMemberRoles() {
+      const memberId = document.getElementById('memberRolesModal').dataset.memberId;
+      const res = await fetchJSON(`/api/guild/${guildId}/member/${memberId}/info`);
+      const data = res;
+      const currentRoleIds = data.roles.map(r => r.id);
+
+      const addRoles = [];
+      const removeRoles = [];
+      data.allRoles.forEach(r => {
+        const checkbox = document.getElementById(`mr_${r.id}`);
+        if (!checkbox) return;
+        if (checkbox.checked && !currentRoleIds.includes(r.id)) addRoles.push(r.id);
+        if (!checkbox.checked && currentRoleIds.includes(r.id)) removeRoles.push(r.id);
+      });
+
+      try {
+        const r = await fetchJSON(`/api/guild/${guildId}/member/${memberId}/roles`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ addRoles, removeRoles })
+        });
+        const d = await r.json();
+        showToast(d.message || d.error, d.success ? 'success' : 'error');
+        if (d.success) { closeModal('memberRolesModal'); loadMembers(); }
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function saveNickname() {
+      const memberId = document.getElementById('memberRolesModal').dataset.memberId;
+      const nickname = document.getElementById('memberNickname').value;
+      try {
+        const r = await fetchJSON(`/api/guild/${guildId}/member/${memberId}/nickname`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ nickname })
+        });
+        const d = await r.json();
+        showToast(d.message || d.error, d.success ? 'success' : 'error');
+        if (d.success) loadMembers();
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function kickMember(id, name) {
+      if (!confirm(`Kick ${name}?`)) return;
+      const reason = prompt('Reason:') || 'Kicked from dashboard';
+      const r = await fetchJSON(`/api/guild/${guildId}/member/${id}/kick`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})});
+      const d = await r.json(); showToast(d.message||d.error, d.success?'success':'error');
+      if (d.success) loadMembers();
+    }
+    async function banMember(id, name) {
+      if (!confirm(`BAN ${name}?`)) return;
+      const reason = prompt('Reason:') || 'Banned from dashboard';
+      const r = await fetchJSON(`/api/guild/${guildId}/member/${id}/ban`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})});
+      const d = await r.json(); showToast(d.message||d.error, d.success?'success':'error');
+      if (d.success) loadMembers();
+    }
+    async function muteMember(id, name) {
+      if (!confirm(`Mute ${name}?`)) return;
+      const r = await fetchJSON(`/api/guild/${guildId}/member/${id}/mute`, {method:'POST',headers:{'Content-Type':'application/json'}});
+      const d = await r.json(); showToast(d.message||d.error, d.success?'success':'error');
+    }
+    async function timeoutMember(id, name) {
+      const duration = prompt('Duration (e.g. 1h, 1d):');
+      if (!duration) return;
+      const reason = prompt('Reason:') || 'Timed out from dashboard';
+      const r = await fetchJSON(`/api/guild/${guildId}/member/${id}/timeout`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({duration,reason})});
+      const d = await r.json(); showToast(d.message||d.error, d.success?'success':'error');
+    }
+
+    // ========== ROLES ==========
+    async function loadRoles() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/roles`);
+        const data = res;
+        const list = document.getElementById('roleList');
+        if (data.error) { list.innerHTML = `<div class="empty-state">${data.error}</div>`; return; }
+        document.getElementById('sRoles').textContent = data.roles.length;
+
+        list.innerHTML = data.roles.map(r => `
+          <div class="list-item" data-name="${r.name}">
+            <div class="item-info">
+              <div class="item-name"><span class="role-color" style="background:${r.color}"></span>${r.name}</div>
+              <div class="item-meta">${r.memberCount} members | Position: ${r.position} | ID: ${r.id}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-primary btn-sm" onclick="openEditRole('${r.id}','${r.name}','${r.color}',${r.hoist||false},${r.mentionable||false})">Edit</button>
+              <button class="btn btn-secondary btn-sm" onclick="editRolePerms('${r.id}','${r.name}')">Perms</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteRole('${r.id}','${r.name}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    function openEditRole(id, name, color, hoist, mentionable) {
+      document.getElementById('erole_Id').value = id;
+      document.getElementById('erole_name').value = name;
+      document.getElementById('erole_color').value = color;
+      document.getElementById('erole_colorHex').value = color;
+      document.getElementById('erole_hoist').checked = hoist;
+      document.getElementById('erole_mention').checked = mentionable;
+      document.getElementById('editRoleModal').classList.add('active');
+    }
+
+    async function saveRoleEdit() {
+      const roleId = document.getElementById('erole_Id').value;
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/role/${roleId}/edit`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            name: document.getElementById('erole_name').value,
+            color: document.getElementById('erole_color').value,
+            hoist: document.getElementById('erole_hoist').checked,
+            mentionable: document.getElementById('erole_mention').checked
+          })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+        if (data.success) { closeModal('editRoleModal'); loadRoles(); }
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    function showCreateRole() {
+      const grid = document.getElementById('rolePermGrid');
+      grid.innerHTML = ALL_PERMS.map(p => `<div class="perm-item"><input type="checkbox" id="cr_${p.replace(/\s/g,'')}"><label for="cr_${p.replace(/\s/g,'')}">${p}</label></div>`).join('');
+      document.getElementById('createRoleModal').classList.add('active');
+    }
+
+    async function createRole() {
+      const name = document.getElementById('newRoleName').value.trim();
+      if (!name) return showToast('Enter a role name', 'error');
+      const perms = ALL_PERMS.filter(p => document.getElementById(`cr_${p.replace(/\s/g,'')}`)?.checked);
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/create-role`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            name, color: document.getElementById('newRoleColor').value,
+            hoist: document.getElementById('newRoleHoist').checked,
+            mentionable: document.getElementById('newRoleMention').checked,
+            permissions: perms
+          })
+        });
+        const data = res;
+        if (data.success) { showToast(data.message, 'success'); closeModal('createRoleModal'); loadRoles(); }
+        else showToast(data.error, 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function editRolePerms(roleId, roleName) {
+      document.getElementById('editRoleId').value = roleId;
+      const res = await fetchJSON(`/api/guild/${guildId}/role/${roleId}/perms`);
+      const data = res;
+      const grid = document.getElementById('editRolePermGrid');
+      grid.innerHTML = ALL_PERMS.map(p => {
+        const checked = data.perms?.includes(p) ? 'checked' : '';
+        return `<div class="perm-item"><input type="checkbox" id="er_${roleId}_${p.replace(/\s/g,'')}" ${checked}><label for="er_${roleId}_${p.replace(/\s/g,'')}">${p}</label></div>`;
+      }).join('');
+      document.getElementById('editRolePermsModal').classList.add('active');
+    }
+
+    async function saveRolePerms() {
+      const roleId = document.getElementById('editRoleId').value;
+      const perms = ALL_PERMS.filter(p => document.getElementById(`er_${roleId}_${p.replace(/\s/g,'')}`)?.checked);
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/role/${roleId}/perms`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ permissions: perms })
+        });
+        const data = res;
+        showToast(data.message||data.error, data.success?'success':'error');
+        if (data.success) closeModal('editRolePermsModal');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function deleteRole(id, name) {
+      if (!confirm(`DELETE role "${name}"?`)) return;
+      const r = await fetchJSON(`/api/guild/${guildId}/role/${id}`, {method:'DELETE'});
+      const d = await r.json(); showToast(d.message||d.error, d.success?'success':'error');
+      if (d.success) loadRoles();
+    }
+
+    // ========== PERMISSIONS ==========
+    async function loadPermChannels() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/channels`);
+        const data = res;
+        const sel = document.getElementById('permChannelSelect');
+        sel.innerHTML = '<option value="">Choose channel...</option>';
+        if (data.channels) {
+          data.channels.filter(c => c.type === 0).forEach(c => {
+            sel.innerHTML += `<option value="${c.id}">#${c.name}</option>`;
+          });
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadChannelPerms() {
+      const channelId = document.getElementById('permChannelSelect').value;
+      if (!channelId) { document.getElementById('permEditor').innerHTML = ''; return; }
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/channel/${channelId}/perms`);
+        const data = res;
+        const editor = document.getElementById('permEditor');
+        if (data.error) { editor.innerHTML = `<div class="empty-state">${data.error}</div>`; return; }
+
+        editor.innerHTML = `
+          <h4 style="margin:15px 0 10px; color:#fff;"># ${data.channelName} — Permissions</h4>
+          <div style="margin-bottom:15px;">
+            <label style="color:#aaa;font-size:0.85rem;">Role / Member</label>
+            <select id="permTarget" onchange="loadTargetPerms('${channelId}')" style="width:100%;padding:10px;border:1px solid #0f3460;border-radius:8px;background:#1a1a2e;color:#fff;margin-top:5px;">
+              ${data.overwrites.map(o => `<option value="${o.id}">${o.name} (${o.type === 0 ? 'Role' : 'Member'})</option>`).join('')}
+            </select>
+          </div>
+          <div id="targetPermsGrid"></div>
+          <div style="margin-top:15px;">
+            <button class="btn btn-success" onclick="saveChannelPerms('${channelId}')">Save Permissions</button>
+          </div>
+        `;
+        if (data.overwrites.length > 0) loadTargetPerms(channelId, data.overwrites[0].id);
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadTargetPerms(channelId, targetId) {
+      targetId = targetId || document.getElementById('permTarget')?.value;
+      if (!targetId) return;
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/channel/${channelId}/perms/${targetId}`);
+        const data = res;
+        const grid = document.getElementById('targetPermsGrid');
+        grid.innerHTML = `<div class="perm-grid">${ALL_PERMS.map(p => {
+          const checked = data.perms?.includes(p) ? 'checked' : '';
+          return `<div class="perm-item"><input type="checkbox" id="cp_${p.replace(/\s/g,'')}" ${checked}><label for="cp_${p.replace(/\s/g,'')}">${p}</label></div>`;
+        }).join('')}</div>`;
+      } catch (e) { console.error(e); }
+    }
+
+    async function saveChannelPerms(channelId) {
+      const targetId = document.getElementById('permTarget')?.value;
+      if (!targetId) return;
+      const perms = ALL_PERMS.filter(p => document.getElementById(`cp_${p.replace(/\s/g,'')}`)?.checked);
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/channel/${channelId}/perms`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ targetId, permissions: perms })
+        });
+        const data = res;
+        showToast(data.message||data.error, data.success?'success':'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    // ========== AUDIT LOGS ==========
+    async function loadLogs() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/logs`);
+        const data = res;
+        const list = document.getElementById('logList');
+        if (data.error || !data.logs?.length) { list.innerHTML = `<div class="empty-state">No logs found</div>`; return; }
+        list.innerHTML = data.logs.map(l => `
+          <div class="list-item">
+            <div class="item-info">
+              <div class="item-name" style="text-transform:uppercase;font-size:0.85rem;">${l.action} <span style="color:#888;">#${l.case_number}</span></div>
+              <div class="item-meta">User: ${l.user_id} | Mod: ${l.moderator_id} | ${l.reason || 'No reason'}</div>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    // ========== SECURITY ==========
+    async function loadSecurity() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security`);
+        const data = res;
+        if (data.error) return;
+
+        document.getElementById('tog_antinuke').checked = data.antinuke_enabled;
+        document.getElementById('tog_antiraid').checked = data.antiraid_enabled;
+        document.getElementById('tog_antibot').checked = data.antibot_enabled;
+        document.getElementById('tog_antilink').checked = data.antilink_enabled;
+        document.getElementById('tog_antispam').checked = data.antispam_enabled;
+        document.getElementById('tog_lockdown').checked = data.lockdown_enabled;
+
+        const anCfg = data.antinuke_config || {};
+        document.getElementById('cfg_an_maxChDel').value = anCfg.maxChannelDelete || 3;
+        document.getElementById('cfg_an_maxChCreate').value = anCfg.maxChannelCreate || 3;
+        document.getElementById('cfg_an_maxRoleDel').value = anCfg.maxRoleDelete || 3;
+        document.getElementById('cfg_an_maxRoleCreate').value = anCfg.maxRoleCreate || 3;
+        document.getElementById('cfg_an_maxBan').value = anCfg.maxMemberBan || 3;
+        document.getElementById('cfg_an_maxKick').value = anCfg.maxMemberKick || 3;
+        document.getElementById('cfg_an_timeWindow').value = anCfg.timeWindow || 60000;
+
+        const arCfg = data.antiraid_config || {};
+        document.getElementById('cfg_ar_joinThreshold').value = arCfg.joinThreshold || 5;
+        document.getElementById('cfg_ar_timeWindow').value = (arCfg.timeWindow || 10000) / 1000;
+        document.getElementById('cfg_ar_action').value = arCfg.action || 'kick';
+
+        const abCfg = data.antibot_config || {};
+        document.getElementById('cfg_ab_action').value = abCfg.action || 'kick';
+        document.getElementById('cfg_ab_allowedBots').value = (abCfg.allowedBots || []).join('\n');
+
+        const alCfg = data.antilink_config || {};
+        document.getElementById('cfg_al_action').value = alCfg.action || 'delete';
+        document.getElementById('cfg_al_whitelistedDomains').value = (alCfg.whitelistedDomains || []).join('\n');
+        document.getElementById('cfg_al_allowedPatterns').value = (alCfg.allowedPatterns || []).join(', ');
+        document.getElementById('cfg_al_ignoredChannels').value = (alCfg.ignoredChannels || []).join(', ');
+        document.getElementById('cfg_al_ignoredRoles').value = (alCfg.ignoredRoles || []).join(', ');
+
+        const asCfg = data.antispam_config || {};
+        document.getElementById('cfg_as_msgLimit').value = asCfg.messageLimit || 5;
+        document.getElementById('cfg_as_timeWindow').value = (asCfg.timeWindow || 5000) / 1000;
+        document.getElementById('cfg_as_action').value = asCfg.action || 'mute';
+        document.getElementById('cfg_as_ignoredChannels').value = (asCfg.ignoredChannels || []).join(', ');
+        document.getElementById('cfg_as_ignoredRoles').value = (asCfg.ignoredRoles || []).join(', ');
+
+        const ldCfg = data.lockdown_config || {};
+        document.getElementById('cfg_ld_action').value = ldCfg.action || 'readonly';
+        document.getElementById('cfg_ld_autoUnlock').value = ldCfg.autoUnlock || 0;
+        document.getElementById('cfg_ld_bypassRoles').value = (ldCfg.bypassRoles || []).join(', ');
+
+        displayWhitelist(data.whitelist || []);
+        displayBlacklist(data.blacklist || []);
+
+        const anBR = data.antinuke_bypass_role;
+        const arBR = data.antiraid_bypass_role;
+        const asBR = data.antispam_bypass_role;
+        document.getElementById('anBypassRole').textContent = anBR ? `Role ID: ${anBR}` : 'Not created yet — click Auto-Create';
+        document.getElementById('arBypassRole').textContent = arBR ? `Role ID: ${arBR}` : 'Not created yet — click Auto-Create';
+        document.getElementById('asBypassRole').textContent = asBR ? `Role ID: ${asBR}` : 'Not created yet — click Auto-Create';
+
+        const chRes = await fetchJSON(`/api/guild/${guildId}/channels`);
+        const chData = await chRes.json();
+        const channelOptions = chData.channels ? chData.channels.filter(c => c.type === 0) : [];
+        ['logChannelSelect', 'cfg_ar_alertChannel', 'cfg_ab_alertChannel', 'cfg_ld_alertChannel'].forEach(selId => {
+          const sel = document.getElementById(selId);
+          if (sel) {
+            const currentVal = sel.value || data[selId === 'logChannelSelect' ? 'log_channel' : ''];
+            sel.innerHTML = '<option value="">None</option>';
+            channelOptions.forEach(c => {
+              sel.innerHTML += `<option value="${c.id}" ${currentVal === c.id ? 'selected' : ''}>#${c.name}</option>`;
+            });
+          }
+        });
+
+        loadSecurityIncidents();
+        loadSecurityLogs();
+        loadTrustData();
+        loadSnapshots();
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadSecurityIncidents() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/incidents`);
+        const data = res;
+        const el = document.getElementById('incidentDisplay');
+        if (!data.incidents || !data.incidents.length) { el.innerHTML = '<span>No incidents recorded</span>'; return; }
+        el.innerHTML = data.incidents.slice(0, 20).map(i => `
+          <div style="padding:8px;border-bottom:1px solid #0f3460;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <strong style="color:${i.resolved ? '#00ff88' : '#ff4444'};">[${i.type}]</strong>
+              <span style="color:#aaa;margin-left:6px;">User: ${i.user_id}</span>
+              <span style="color:#888;margin-left:6px;font-size:0.8rem;">${new Date(i.created_at).toLocaleString()}</span>
+            </div>
+            <div>
+              ${i.resolved ? '<span style="color:#00ff88;font-size:0.8rem;">Resolved</span>' : `<button class="btn btn-success btn-sm" onclick="resolveIncident(${i.id})">Resolve</button>`}
+            </div>
+          </div>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadSecurityLogs() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/logs`);
+        const data = res;
+        const el = document.getElementById('securityLogDisplay');
+        if (!data.logs || !data.logs.length) { el.innerHTML = '<span>No security logs</span>'; return; }
+        el.innerHTML = data.logs.slice(0, 30).map(l => `
+          <div style="padding:6px 0;border-bottom:1px solid #0f3460;font-size:0.85rem;">
+            <strong style="color:#00ff88;">[${l.action}]</strong>
+            <span style="color:#aaa;margin-left:6px;">${l.user_id || 'System'}</span>
+            <span style="color:#888;margin-left:6px;">${l.type || ''}</span>
+            <span style="color:#666;margin-left:6px;font-size:0.75rem;">${new Date(l.created_at).toLocaleString()}</span>
+          </div>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadTrustData() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/trust`);
+        const data = res;
+        const el = document.getElementById('trustDisplay');
+        if (!data.trust || !data.trust.length) { el.innerHTML = '<span>No trust data recorded</span>'; return; }
+        el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+          <tr style="border-bottom:1px solid #0f3460;color:#aaa;"><td>User</td><td>Score</td><td>Level</td><td>Flags</td><td>Status</td></tr>
+          ${data.trust.map(t => `<tr style="border-bottom:1px solid #0f3460;">
+            <td style="color:#fff;">${t.user_id}</td>
+            <td style="color:${t.trust_score > 7 ? '#00ff88' : t.trust_score > 4 ? '#ffaa00' : '#ff4444'};">${t.trust_score}/10</td>
+            <td style="color:#aaa;">Lvl ${t.trust_level}</td>
+            <td style="color:#ff4444;">${t.suspicious_actions}</td>
+            <td>${t.is_flagged ? '<span style="color:#ff4444;">⚠ FLAGGED</span>' : '<span style="color:#00ff88;">OK</span>'}</td>
+          </tr>`).join('')}
+        </table>`;
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadSnapshots() {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/snapshots`);
+        const data = res;
+        const el = document.getElementById('snapshotDisplay');
+        if (!data.snapshots || !data.snapshots.length) { el.innerHTML = '<span>No snapshots created yet. Create one above to backup server state.</span>'; return; }
+        el.innerHTML = data.snapshots.map(s => `
+          <div style="padding:8px;border-bottom:1px solid #0f3460;">
+            <span style="color:#fff;">Snapshot #${s.id}</span>
+            <span style="color:#888;margin-left:10px;font-size:0.8rem;">${new Date(s.created_at).toLocaleString()}</span>
+          </div>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function resolveIncident(id) {
+      await fetchJSON(`/api/guild/${guildId}/security/incident/${id}/resolve`, { method: 'POST' });
+      loadSecurityIncidents();
+    }
+
+    async function toggleSecurity(feature, enabled) {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/toggle`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ feature, enabled })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+      } catch (e) { showToast('Failed to toggle', 'error'); }
+    }
+
+    async function saveAntinukeConfig() {
+      const config = {
+        maxChannelDelete: parseInt(document.getElementById('cfg_an_maxChDel').value),
+        maxChannelCreate: parseInt(document.getElementById('cfg_an_maxChCreate').value),
+        maxRoleDelete: parseInt(document.getElementById('cfg_an_maxRoleDel').value),
+        maxRoleCreate: parseInt(document.getElementById('cfg_an_maxRoleCreate').value),
+        maxMemberBan: parseInt(document.getElementById('cfg_an_maxBan').value),
+        maxMemberKick: parseInt(document.getElementById('cfg_an_maxKick').value),
+        timeWindow: parseInt(document.getElementById('cfg_an_timeWindow').value)
+      };
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/config`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ feature: 'antinuke', config })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function saveAntiraidConfig() {
+      const config = {
+        joinThreshold: parseInt(document.getElementById('cfg_ar_joinThreshold').value),
+        timeWindow: parseInt(document.getElementById('cfg_ar_timeWindow').value) * 1000,
+        action: document.getElementById('cfg_ar_action').value,
+        alertChannel: document.getElementById('cfg_ar_alertChannel').value || null
+      };
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/config`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ feature: 'antiraid', config })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function saveAntibotConfig() {
+      const config = {
+        action: document.getElementById('cfg_ab_action').value,
+        alertChannel: document.getElementById('cfg_ab_alertChannel').value || null,
+        allowedBots: document.getElementById('cfg_ab_allowedBots').value.split('\n').map(s => s.trim()).filter(Boolean)
+      };
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/config`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ feature: 'antibot', config })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function saveAntispamConfig() {
+      const config = {
+        messageLimit: parseInt(document.getElementById('cfg_as_msgLimit').value),
+        timeWindow: parseInt(document.getElementById('cfg_as_timeWindow').value) * 1000,
+        action: document.getElementById('cfg_as_action').value,
+        ignoredChannels: document.getElementById('cfg_as_ignoredChannels').value.split(',').map(s => s.trim()).filter(Boolean),
+        ignoredRoles: document.getElementById('cfg_as_ignoredRoles').value.split(',').map(s => s.trim()).filter(Boolean)
+      };
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/config`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ feature: 'antispam', config })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function saveAntilinkConfig() {
+      const config = {
+        action: document.getElementById('cfg_al_action').value,
+        whitelistedDomains: document.getElementById('cfg_al_whitelistedDomains').value.split('\n').map(s => s.trim()).filter(Boolean),
+        allowedPatterns: document.getElementById('cfg_al_allowedPatterns').value.split(',').map(s => s.trim()).filter(Boolean),
+        ignoredChannels: document.getElementById('cfg_al_ignoredChannels').value.split(',').map(s => s.trim()).filter(Boolean),
+        ignoredRoles: document.getElementById('cfg_al_ignoredRoles').value.split(',').map(s => s.trim()).filter(Boolean)
+      };
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/config`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ feature: 'antilink', config })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function saveLockdownConfig() {
+      const config = {
+        action: document.getElementById('cfg_ld_action').value,
+        autoUnlock: parseInt(document.getElementById('cfg_ld_autoUnlock').value),
+        alertChannel: document.getElementById('cfg_ld_alertChannel').value || null,
+        bypassRoles: document.getElementById('cfg_ld_bypassRoles').value.split(',').map(s => s.trim()).filter(Boolean)
+      };
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/config`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ feature: 'lockdown', config })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function saveLogChannel() {
+      const channelId = document.getElementById('logChannelSelect').value;
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/logchannel`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ channelId })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+      } catch (e) { showToast('Failed', 'error'); }
+    }
+
+    async function createBypassRole(type) {
+      try {
+        const res = await fetchJSON(`/api/guild/${guildId}/security/create-bypass-role`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ type })
+        });
+        const data = res;
+        showToast(data.message || data.error, data.success ? 'success' : 'error');
+        if (data.success) loadSecurity();
+      } catch (e) { showToast('Failed to create bypass role', 'error'); }
+    }
+
+    async function lockdownAll() {
+      if (!confirm('LOCK ALL channels? This is an emergency action.')) return;
+      const res = await fetchJSON(`/api/guild/${guildId}/security/lockdown-all`, { method: 'POST' });
+      const data = res;
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+    }
+
+    async function unlockAll() {
+      if (!confirm('Unlock all channels?')) return;
+      const res = await fetchJSON(`/api/guild/${guildId}/security/unlock-all`, { method: 'POST' });
+      const data = res;
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+    }
+
+    async function raidPurge() {
+      if (!confirm('Purge ALL members who joined in the last 24 hours?')) return;
+      const res = await fetchJSON(`/api/guild/${guildId}/security/raid-purge`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ hours: 24 })
+      });
+      const data = res;
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+    }
+
+    async function raidPurge48() {
+      if (!confirm('Purge ALL members who joined in the last 48 hours?')) return;
+      const res = await fetchJSON(`/api/guild/${guildId}/security/raid-purge`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ hours: 48 })
+      });
+      const data = res;
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+    }
+
+    async function botPurge() {
+      if (!confirm('Remove ALL unauthorized bots from the server?')) return;
+      const res = await fetchJSON(`/api/guild/${guildId}/security/bot-purge`, { method: 'POST' });
+      const data = res;
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+    }
+
+    async function createSnapshot() {
+      const res = await fetchJSON(`/api/guild/${guildId}/security/snapshot`, { method: 'POST' });
+      const data = res;
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+      if (data.success) loadSnapshots();
+    }
+
+    async function updateTrust() {
+      const userId = document.getElementById('trustUserId').value.trim();
+      const score = parseInt(document.getElementById('trustScore').value);
+      if (!userId || isNaN(score)) return showToast('Enter user ID and score', 'error');
+      const res = await fetchJSON(`/api/guild/${guildId}/security/trust`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, score })
+      });
+      const data = res;
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+      if (data.success) loadTrustData();
+    }
+
+    async function flagTrust() {
+      const userId = document.getElementById('trustUserId').value.trim();
+      if (!userId) return showToast('Enter user ID', 'error');
+      const res = await fetchJSON(`/api/guild/${guildId}/security/trust`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, flag: true })
+      });
+      const data = res;
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+      if (data.success) loadTrustData();
+    }
+
+    function displayWhitelist(list) {
+      const el = document.getElementById('whitelistDisplay');
+      if (!list.length) { el.innerHTML = '<span>No users whitelisted</span>'; return; }
+      el.innerHTML = list.map(id => `<span style="background:#0f3460;padding:3px 8px;border-radius:4px;font-size:0.8rem;margin-right:5px;">${id} <span style="cursor:pointer;color:#ff4444;" onclick="removeWhitelist('${id}')">X</span></span>`).join('');
+    }
+
+    function displayBlacklist(list) {
+      const el = document.getElementById('blacklistDisplay');
+      if (!list.length) { el.innerHTML = '<span>No users blacklisted</span>'; return; }
+      el.innerHTML = list.map(id => `<span style="background:#3a1010;padding:3px 8px;border-radius:4px;font-size:0.8rem;margin-right:5px;">${id} <span style="cursor:pointer;color:#ff4444;" onclick="removeBlacklist('${id}')">X</span></span>`).join('');
+    }
+
+    async function addWhitelist() {
+      const userId = document.getElementById('whitelistInput').value.trim();
+      if (!userId) return;
+      const res = await fetchJSON(`/api/guild/${guildId}/security/whitelist`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, action: 'add' })
+      });
+      const data = res;
+      if (data.success) { displayWhitelist(data.whitelist); document.getElementById('whitelistInput').value = ''; }
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+    }
+
+    async function removeWhitelist(userId) {
+      const res = await fetchJSON(`/api/guild/${guildId}/security/whitelist`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, action: 'remove' })
+      });
+      const data = res;
+      if (data.success) displayWhitelist(data.whitelist);
+    }
+
+    async function addBlacklist() {
+      const userId = document.getElementById('blacklistInput').value.trim();
+      if (!userId) return;
+      const res = await fetchJSON(`/api/guild/${guildId}/security/blacklist`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, action: 'add' })
+      });
+      const data = res;
+      if (data.success) { displayBlacklist(data.blacklist); document.getElementById('blacklistInput').value = ''; }
+      showToast(data.message || data.error, data.success ? 'success' : 'error');
+    }
+
+    async function removeBlacklist(userId) {
+      const res = await fetchJSON(`/api/guild/${guildId}/security/blacklist`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, action: 'remove' })
+      });
+      const data = res;
+      if (data.success) displayBlacklist(data.blacklist);
+    }
+
+    // INIT
+    loadChannels();
+    loadSecurity();
+  </script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

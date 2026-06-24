@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Economy Dashboard - Hacker Bot</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .eco-nav .nav-logo { color: var(--gold); }
+    .eco-nav .logo-icon { background: var(--gold); }
+    .eco-nav .nav-link:hover, .eco-nav .nav-link.active { color: var(--gold); }
+    .eco-tab.active { background: linear-gradient(135deg, var(--gold), var(--orange)) !important; color: var(--bg-primary) !important; }
+    .money { color: var(--accent); font-weight: 700; }
+    .leaderboard-crown { font-size: 1.1rem; margin-right: 4px; }
+    .rank-1 { color: var(--gold); font-weight: 700; }
+    .rank-2 { color: #c0c0c0; font-weight: 700; }
+    .rank-3 { color: #cd7f32; font-weight: 700; }
+    .user-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .activity-item { padding: 10px 0; border-bottom: 1px solid var(--border-primary); font-size: 0.85rem; }
+    .activity-item:last-child { border-bottom: none; }
+    @media (max-width: 700px) { .user-detail { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="eco-nav">
+  <nav class="nav">
+    <a href="/" class="nav-logo"><span class="logo-icon">H</span> Hacker Bot</a>
+    <div class="nav-right">
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/dashboard/economy" class="nav-link active">Economy</a>
+      <a href="/dashboard/guilds" class="nav-link">Servers</a>
+      <a href="/auth/logout" class="nav-link">Logout</a>
+      <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" class="nav-avatar" alt="">
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 class="page-title">Economy Control Center</h1>
+    <p class="page-subtitle">Manage global economy across all servers</p>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="icon">👥</div><div class="value" id="statUsers">-</div><div class="label">Total Users</div></div>
+      <div class="stat-card"><div class="icon">💰</div><div class="value" id="statMoney">-</div><div class="label">Total Money</div></div>
+      <div class="stat-card"><div class="icon">👛</div><div class="value" id="statWallet">-</div><div class="label">Total Wallet</div></div>
+      <div class="stat-card"><div class="icon">🏦</div><div class="value" id="statBank">-</div><div class="label">Total Bank</div></div>
+      <div class="stat-card"><div class="icon">📊</div><div class="value" id="statAvg">-</div><div class="label">Avg Balance</div></div>
+      <div class="stat-card"><div class="icon">👑</div><div class="value" id="statRichest">-</div><div class="label">Richest User</div></div>
+      <div class="stat-card"><div class="icon">🏠</div><div class="value" id="statGuilds">-</div><div class="label">Servers</div></div>
+      <div class="stat-card"><div class="icon">🎒</div><div class="value" id="statItems">-</div><div class="label">Total Items</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab eco-tab active" onclick="switchTab('leaderboard')">Leaderboard</button>
+      <button class="tab eco-tab" onclick="switchTab('users')">User Management</button>
+      <button class="tab eco-tab" onclick="switchTab('shop')">Shop</button>
+      <button class="tab eco-tab" onclick="switchTab('activity')">Activity</button>
+    </div>
+
+    <!-- LEADERBOARD TAB -->
+    <div id="leaderboard" class="panel active">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Global Leaderboard</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <select id="lbGuild" onchange="loadLeaderboard()" class="form-select" style="width:auto;padding:8px 36px 8px 12px;font-size:0.85rem;">
+              <option value="">All Servers</option>
+            </select>
+            <select id="lbSort" onchange="loadLeaderboard()" class="form-select" style="width:auto;padding:8px 36px 8px 12px;font-size:0.85rem;">
+              <option value="total">Total (Wallet+Bank)</option>
+              <option value="balance">Wallet Only</option>
+              <option value="bank">Bank Only</option>
+            </select>
+            <button class="btn btn-gold btn-sm" onclick="loadLeaderboard()">Refresh</button>
+          </div>
+        </div>
+        <div class="list" id="leaderboardList"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- USER MANAGEMENT TAB -->
+    <div id="users" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">User Management</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="text" class="search-box" id="userSearch" placeholder="Search user ID..." oninput="debounceSearch()" style="max-width:220px;">
+            <select id="userGuildFilter" onchange="loadUsers()" class="form-select" style="width:auto;padding:8px 36px 8px 12px;font-size:0.85rem;">
+              <option value="">All Servers</option>
+            </select>
+          </div>
+        </div>
+        <div class="list" id="userList"><div class="loading">Loading...</div></div>
+        <div class="pagination" id="userPagination"></div>
+      </div>
+    </div>
+
+    <!-- SHOP TAB -->
+    <div id="shop" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Shop Items</div>
+          <button class="btn btn-gold btn-sm" onclick="loadShop()">Refresh</button>
+        </div>
+        <div class="shop-grid" id="shopGrid"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY TAB -->
+    <div id="activity" class="panel">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Recent Daily Claims</div></div>
+          <div class="list" id="dailyList"><div class="loading">Loading...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Recent Work</div></div>
+          <div class="list" id="workList"><div class="loading">Loading...</div></div>
+        </div>
+      </div>
+      <div class="card mt-md">
+        <div class="card-header"><div class="card-title">Active Jobs Distribution</div></div>
+        <div id="jobStats"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT USER MODAL -->
+  <div class="modal-overlay" id="editUserModal">
+    <div class="modal">
+      <div class="modal-title">Edit User Economy</div>
+      <input type="hidden" id="editUserId">
+      <input type="hidden" id="editUserGuild">
+      <div id="editUserInfo" style="margin-bottom:16px;color:var(--text-muted);font-size:0.85rem;font-family:var(--font-mono);"></div>
+      <div class="user-detail">
+        <div class="form-card">
+          <div class="section-title" style="color:var(--accent);">Wallet</div>
+          <div class="form-group">
+            <label>Balance</label>
+            <input type="number" id="editBalance" value="0" class="form-input">
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-success btn-sm" onclick="adjustBalance('give','wallet')">+ Give</button>
+            <button class="btn btn-danger btn-sm" onclick="adjustBalance('take','wallet')">- Take</button>
+          </div>
+        </div>
+        <div class="form-card">
+          <div class="section-title" style="color:var(--gold);">Bank</div>
+          <div class="form-group">
+            <label>Balance</label>
+            <input type="number" id="editBank" value="0" class="form-input">
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-success btn-sm" onclick="adjustBalance('give','bank')">+ Give</button>
+            <button class="btn btn-danger btn-sm" onclick="adjustBalance('take','bank')">- Take</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-group mt-md">
+        <label>Inventory</label>
+        <div id="editInventory" style="color:var(--text-muted);font-size:0.85rem;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-gold" onclick="saveUserEdit()">Save Changes</button>
+        <button class="btn btn-danger" onclick="resetUser()">Reset Economy</button>
+        <button class="btn btn-secondary" onclick="closeModal('editUserModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/dashboard.js"></script>
+  <script>
+    const ITEM_NAMES = { 1:'Fishing Rod', 2:'Pickaxe', 3:'Laptop', 4:'Car', 5:'House', 6:'Diamond Sword', 7:'Shield', 8:'Potion', 9:'Gem', 10:'Crown' };
+    const ITEM_EMOJIS = { 1:'🎣', 2:'⛏️', 3:'💻', 4:'🚗', 5:'🏠', 6:'⚔️', 7:'🛡️', 8:'🧪', 9:'💎', 10:'👑' };
+    let searchTimeout = null;
+    let currentUserPage = 1;
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+      if (tab === 'leaderboard') loadLeaderboard();
+      if (tab === 'users') loadUsers();
+      if (tab === 'shop') loadShop();
+      if (tab === 'activity') loadActivity();
+    }
+
+    function formatMoney(n) {
+      if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
+      if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+      return '$' + n.toLocaleString();
+    }
+
+    function debounceSearch() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => { currentUserPage = 1; loadUsers(); }, 300);
+    }
+
+    async function loadStats() {
+      const d = await apiFetch('/api/economy/global-stats');
+      if (!d) return;
+      document.getElementById('statUsers').textContent = d.totalUsers.toLocaleString();
+      document.getElementById('statMoney').textContent = formatMoney(d.totalMoney);
+      document.getElementById('statWallet').textContent = formatMoney(d.totalBalance);
+      document.getElementById('statBank').textContent = formatMoney(d.totalBank);
+      document.getElementById('statAvg').textContent = formatMoney(d.avgBalance + d.avgBank);
+      document.getElementById('statRichest').textContent = d.richestUser ? formatMoney(d.richestUser.total) : '$0';
+      document.getElementById('statGuilds').textContent = d.guildCount;
+      document.getElementById('statItems').textContent = d.totalItems.toLocaleString();
+    }
+
+    async function loadGuildFilter() {
+      const d = await apiFetch('/api/economy/guilds');
+      if (!d) return;
+      ['lbGuild', 'userGuildFilter'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">All Servers</option>';
+        (d.guilds || []).forEach(g => {
+          sel.innerHTML += `<option value="${g.guild_id}">${g.guild_id} (${g.userCount} users)</option>`;
+        });
+      });
+    }
+
+    async function loadLeaderboard() {
+      const guild = document.getElementById('lbGuild').value;
+      const sort = document.getElementById('lbSort').value;
+      const list = document.getElementById('leaderboardList');
+      list.innerHTML = '<div class="loading">Loading...</div>';
+      const d = await apiFetch(`/api/economy/leaderboard?limit=50&sort=${sort}${guild ? '&guild=' + guild : ''}`);
+      if (!d || !d.users || !d.users.length) { list.innerHTML = '<div class="empty-state"><div class="title">No users found</div></div>'; return; }
+      list.innerHTML = d.users.map((u, i) => {
+        const total = (u.balance || 0) + (u.bank || 0);
+        const rank = i + 1;
+        const crown = rank <= 3 ? `<span class="leaderboard-crown">${rank===1?'👑':rank===2?'🥈':'🥉'}</span>` : '';
+        const rankClass = rank <= 3 ? `rank-${rank}` : '';
+        const border = rank <= 3 ? `border-left:3px solid ${rank===1?'var(--gold)':rank===2?'#c0c0c0':'#cd7f32'};` : '';
+        return `
+          <div class="list-item" style="${border}">
+            <div class="item-info">
+              <div class="item-name">${crown} <span class="${rankClass}">#${rank}</span> — User ${u.user_id}</div>
+              <div class="item-meta">Guild: ${u.guild_id} | Wallet: <span class="money">$${(u.balance||0).toLocaleString()}</span> | Bank: <span class="money">$${(u.bank||0).toLocaleString()}</span></div>
+            </div>
+            <div class="item-actions">
+              <span class="badge badge-gold">${formatMoney(total)}</span>
+              <button class="btn btn-primary btn-sm" onclick="editUser('${u.user_id}','${u.guild_id}',${u.balance||0},${u.bank||0},'${btoa(JSON.stringify(u.inventory||'[]'))}')">Manage</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadUsers(page) {
+      currentUserPage = page || currentUserPage;
+      const search = document.getElementById('userSearch').value;
+      const guild = document.getElementById('userGuildFilter').value;
+      const list = document.getElementById('userList');
+      list.innerHTML = '<div class="loading">Loading...</div>';
+      const d = await apiFetch(`/api/economy/users?page=${currentUserPage}&search=${search}${guild ? '&guild=' + guild : ''}`);
+      if (!d || !d.users || !d.users.length) { list.innerHTML = '<div class="empty-state"><div class="title">No users found</div></div>'; return; }
+      list.innerHTML = d.users.map(u => {
+        const total = (u.balance || 0) + (u.bank || 0);
+        let inv = [];
+        try { inv = JSON.parse(u.inventory || '[]'); } catch(e) {}
+        return `
+          <div class="list-item">
+            <div class="item-info">
+              <div class="item-name">User ${u.user_id}</div>
+              <div class="item-meta">Guild: ${u.guild_id} | Wallet: <span class="money">$${(u.balance||0).toLocaleString()}</span> | Bank: <span class="money">$${(u.bank||0).toLocaleString()}</span> | Items: ${inv.length}</div>
+            </div>
+            <div class="item-actions">
+              <span class="badge badge-gold">${formatMoney(total)}</span>
+              <button class="btn btn-primary btn-sm" onclick="editUser('${u.user_id}','${u.guild_id}',${u.balance||0},${u.bank||0},'${btoa(JSON.stringify(u.inventory||'[]'))}')">Edit</button>
+            </div>
+          </div>`;
+      }).join('');
+      const totalPages = Math.ceil(d.total / d.limit);
+      const pag = document.getElementById('userPagination');
+      if (totalPages <= 1) { pag.innerHTML = ''; return; }
+      let html = '';
+      if (currentUserPage > 1) html += `<button class="page-btn" onclick="loadUsers(${currentUserPage-1})">Prev</button>`;
+      for (let p = 1; p <= Math.min(totalPages, 10); p++) {
+        html += `<button class="page-btn ${p===currentUserPage?'active':''}" onclick="loadUsers(${p})">${p}</button>`;
+      }
+      if (currentUserPage < totalPages) html += `<button class="page-btn" onclick="loadUsers(${currentUserPage+1})">Next</button>`;
+      pag.innerHTML = html;
+    }
+
+    async function loadShop() {
+      const grid = document.getElementById('shopGrid');
+      grid.innerHTML = '<div class="loading">Loading...</div>';
+      const [shop, own] = await Promise.all([apiFetch('/api/economy/shop-items'), apiFetch('/api/economy/item-ownership')]);
+      if (!shop) { grid.innerHTML = '<div class="empty-state"><div class="title">Failed to load</div></div>'; return; }
+      grid.innerHTML = (shop.items || []).map(item => {
+        const o = own?.ownership?.[item.id] || { count: 0 };
+        return `
+          <div class="shop-item">
+            <div class="emoji">${item.emoji}</div>
+            <div class="name">${item.name}</div>
+            <div class="price">${formatMoney(item.price)}</div>
+            <div class="sell">Sell: ${formatMoney(item.sell)} (70%)</div>
+            <div class="desc">${item.desc}</div>
+            <div class="owned">Owned by ${o.count} user(s)</div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadActivity() {
+      const d = await apiFetch('/api/economy/activity');
+      if (!d) return;
+      const dailyList = document.getElementById('dailyList');
+      const workList = document.getElementById('workList');
+      if (d.recentDaily?.length) {
+        dailyList.innerHTML = d.recentDaily.map(u => `
+          <div class="activity-item">
+            <strong>${u.user_id}</strong> — Streak: ${u.daily_streak || 0}
+            <span style="float:right;color:var(--text-dim);font-family:var(--font-mono);font-size:0.75rem;">${u.last_daily ? new Date(u.last_daily).toLocaleString() : 'N/A'}</span>
+          </div>`).join('');
+      } else dailyList.innerHTML = '<div class="empty-state"><div class="title">No daily claims</div></div>';
+      if (d.recentWork?.length) {
+        workList.innerHTML = d.recentWork.map(u => `
+          <div class="activity-item">
+            <strong>${u.user_id}</strong>
+            <span style="float:right;color:var(--text-dim);font-family:var(--font-mono);font-size:0.75rem;">${u.last_work ? new Date(u.last_work).toLocaleString() : 'N/A'}</span>
+          </div>`).join('');
+      } else workList.innerHTML = '<div class="empty-state"><div class="title">No work activity</div></div>';
+      const jobStats = document.getElementById('jobStats');
+      if (d.activeJobs?.length) {
+        jobStats.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap;">${d.activeJobs.map(j => `
+          <div class="stat-mini" style="min-width:100px;">
+            <h4 style="color:var(--gold);">${j.count}</h4>
+            <p>${j.job || 'Unknown'}</p>
+          </div>`).join('')}</div>`;
+      } else jobStats.innerHTML = '<div class="empty-state"><div class="title">No jobs active</div></div>';
+    }
+
+    function editUser(userId, guildId, balance, bank, invB64) {
+      document.getElementById('editUserId').value = userId;
+      document.getElementById('editUserGuild').value = guildId;
+      document.getElementById('editBalance').value = balance;
+      document.getElementById('editBank').value = bank;
+      document.getElementById('editUserInfo').textContent = `User: ${userId} | Guild: ${guildId}`;
+      let inv = [];
+      try { inv = JSON.parse(atob(invB64)); } catch(e) {}
+      const invEl = document.getElementById('editInventory');
+      if (inv.length) {
+        const counts = {};
+        inv.forEach(id => { counts[id] = (counts[id]||0)+1; });
+        invEl.innerHTML = Object.entries(counts).map(([id, count]) =>
+          `<span class="badge badge-muted" style="margin-right:4px;">${ITEM_EMOJIS[id]||'📦'} ${ITEM_NAMES[id]||'Item #'+id} x${count}</span>`
+        ).join('');
+      } else {
+        invEl.innerHTML = '<span style="color:var(--text-dim);">Empty inventory</span>';
+      }
+      openModal('editUserModal');
+    }
+
+    async function adjustBalance(action, target) {
+      const userId = document.getElementById('editUserId').value;
+      const guildId = document.getElementById('editUserGuild').value;
+      const amount = prompt(`Amount to ${action}:`);
+      if (!amount || isNaN(parseInt(amount))) return;
+      const d = await apiFetch(`/api/economy/user/${userId}/${action}`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ guildId, amount: parseInt(amount), target })
+      });
+      if (d) {
+        showToast(d.message || d.error, d.success ? 'success' : 'error');
+        if (d.success) {
+          if (target === 'wallet') document.getElementById('editBalance').value = d.newBalance;
+          else document.getElementById('editBank').value = d.newBalance;
+        }
+      }
+    }
+
+    async function saveUserEdit() {
+      const userId = document.getElementById('editUserId').value;
+      const guildId = document.getElementById('editUserGuild').value;
+      const d = await apiFetch(`/api/economy/user/${userId}/update`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ guildId, balance: parseInt(document.getElementById('editBalance').value), bank: parseInt(document.getElementById('editBank').value) })
+      });
+      if (d) {
+        showToast(d.message || d.error, d.success ? 'success' : 'error');
+        if (d.success) { closeModal('editUserModal'); loadLeaderboard(); loadUsers(); loadStats(); }
+      }
+    }
+
+    async function resetUser() {
+      if (!confirm('RESET this user economy? Wallet, bank, and inventory will be wiped.')) return;
+      const userId = document.getElementById('editUserId').value;
+      const guildId = document.getElementById('editUserGuild').value;
+      const d = await apiFetch(`/api/economy/user/${userId}/reset`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ guildId })
+      });
+      if (d) {
+        showToast(d.message || d.error, d.success ? 'success' : 'error');
+        if (d.success) { closeModal('editUserModal'); loadLeaderboard(); loadUsers(); loadStats(); }
+      }
+    }
+
+    loadStats();
+    loadGuildFilter();
+    loadLeaderboard();
+  </script>
+</body>
+</html>

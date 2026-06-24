@@ -1,0 +1,8 @@
+-XX:+UseG1GC
+-XX:G1HeapRegionSize=4m
+-XX:MaxGCPauseMillis=200
+-XX:InitiatingHeapOccupancyPercent=45
+-XX:+ParallelRefProcEnabled
+-XX:+ExplicitGCInvokesConcurrent
+-Djdk.module.illegalAccess=permit
+--add-opens java.base/java.lang=ALL-UNNAMED

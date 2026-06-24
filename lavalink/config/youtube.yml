@@ -1,0 +1,32 @@
+# YouTube Source Configuration
+# Prevents 403 Forbidden errors
+
+lavalink:
+  plugins:
+    lavalink-plugin-youtube:
+      enabled: true
+      # YouTube OAuth for age-restricted content
+      # Generate at: https://github.com/lavalink-devs/youtube-oauth
+      oauth:
+        enabled: false
+        # clientId: "YOUR_CLIENT_ID"
+        # clientSecret: "YOUR_CLIENT_SECRET"
+      
+      # YouTube PO Token
+      # Generate at: https://github.com/nicholasgpt/potoken
+      poToken:
+        enabled: false
+        # token: "YOUR_PO_TOKEN"
+      
+      # Player client selection
+      playerClients:
+        - WEB
+        - MWEB
+        - ANDROID
+        - IOS
+      
+      # Search configuration
+      searchEnabled: true
+      playlistLoadLimit: 600
+      albumLoadLimit: 600
+      tracksLoadLimit: 600

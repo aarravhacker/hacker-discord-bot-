@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error - Hacker Bot</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .error-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px; }
+    .error-page .code { font-size: 7rem; font-weight: 900; color: var(--red); letter-spacing: -0.04em; line-height: 1; }
+    .error-page h2 { font-size: 1.5rem; margin: 12px 0; color: var(--text-primary); }
+    .error-page p { color: var(--text-muted); margin-bottom: 32px; max-width: 400px; }
+  </style>
+</head>
+<body>
+  <div class="error-page">
+    <div>
+      <div class="code">403</div>
+      <h2>Access Denied</h2>
+      <p><%= message %></p>
+      <a href="/" class="btn btn-primary btn-lg">Go Home</a>
+    </div>
+  </div>
+</body>
+</html>
